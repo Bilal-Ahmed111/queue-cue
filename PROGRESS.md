@@ -1,4 +1,4 @@
-# Progress: Live Chat Notifier
+# Progress: Queue Cue
 
 Current phase: 1 (Setup)
 
@@ -81,6 +81,7 @@ Key: [ ] to do, [x] done. Owner in brackets.
 - Phone alerts via ntfy with a random topic; alerts never include message text.
 - Three agents only: builder (main session), researcher, reviewer.
 - Tawk.to first, Zendesk second.
+- Name: Queue Cue (GitHub repo: queue-cue). Folder on the PC is still "Live Chat Notifier".
 
 ## Known limitations
 - The computer must be on with Chrome open for any alert, including phone alerts.

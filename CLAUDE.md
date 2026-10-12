@@ -1,4 +1,4 @@
-# Live Chat Notifier: project rules
+# Queue Cue: project rules
 
 ## What we're building
 A Chrome extension (Manifest V3) that alerts the user when a website's live-chat agent joins the chat or replies, so they can leave the chat tab and get on with other things. Desktop notification first, then an optional phone alert via ntfy. Platforms: Tawk.to first, then Zendesk (both its messaging widget and its Classic widget).
