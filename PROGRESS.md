@@ -5,7 +5,7 @@ Current phase: 1 (Setup)
 Key: [ ] to do, [x] done. Owner in brackets.
 
 ## Phase 1: Setup
-- [ ] GitHub repo created and pushed (Claude Code, with Bilal's OK)
+- [x] GitHub repo created and pushed (Claude Code, with Bilal's OK): github.com/Bilal-Ahmed111/queue-cue
 - [ ] Free Tawk.to account created (Bilal)
 - [ ] Agent status set to Online in the Tawk.to dashboard. If no agent is online, visitors get a leave-a-message form instead of live chat (Bilal)
 - [ ] Tawk.to embed code pasted into Claude Code (Bilal) and saved as test-site/index.html (Claude Code)
