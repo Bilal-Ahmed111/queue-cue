@@ -7,7 +7,7 @@ Key: [ ] to do, [x] done. Owner in brackets.
 ## Phase 1: Setup
 - [x] GitHub repo created and pushed (Claude Code, with Bilal's OK): github.com/Bilal-Ahmed111/queue-cue
 - [x] Free Tawk.to account created (Bilal)
-- [ ] Agent status set to Online in the Tawk.to dashboard. If no agent is online, visitors get a leave-a-message form instead of live chat (Bilal)
+- [x] Agent status set to Online in the Tawk.to dashboard. If no agent is online, visitors get a leave-a-message form instead of live chat (Bilal)
 - [x] Tawk.to embed code pasted into Claude Code (Bilal) and saved as test-site/index.html (Claude Code)
 - [x] Test site served locally with the chat widget visible. If it won't load locally, host it on GitHub Pages instead (Claude Code + Bilal). Works at http://localhost:8080 (python -m http.server, set up in .claude/launch.json); checked in Claude Code's built-in browser
 - [x] Research: Tawk.to JavaScript API. Verify onAgentJoinChat, onChatMessageAgent and onChatMessageVisitor, what each passes, and limits such as pop-out chat windows. Save to notes/research/tawk.md (researcher). Live test with the real widget done (section 7): old messages don't replay on refresh; no message ID; Tawk.to reads handlers once at load, so the hook must run at document_start; every open tab fires, so alerts must be de-duplicated across tabs
