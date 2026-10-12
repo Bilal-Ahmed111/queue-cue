@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Queue Cue Tawk.to Probe</title>
+  <style>
+    body { font-family: sans-serif; margin: 16px; }
+    #log { font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Queue Cue Tawk.to Probe</h1>
+  <p>Same Tawk.to widget as index.html, but every Tawk_API callback is logged below (and in the console) with its arguments, so we can see what the real API sends. Used to settle the open questions in notes/research/tawk.md.</p>
+  <ol id="log"></ol>
+
+  <script type="text/javascript">
+  // Probe: attach a logger to every documented callback before the widget loads.
+  window.__probe = { t0: Date.now(), log: [], handlers: {} };
+
+  function probeState() {
+    var api = window.Tawk_API, s = {};
+    ['getStatus', 'isChatOngoing', 'isVisitorEngaged', 'isChatMaximized'].forEach(function (m) {
+      try { if (api && typeof api[m] === 'function') s[m] = api[m](); } catch (e) { s[m] = 'error: ' + e.message; }
+    });
+    return s;
+  }
+
+  function probeLog(name, args, extra) {
+    var entry = { t: Date.now() - __probe.t0, name: name, args: args, state: probeState() };
+    if (extra) entry.extra = extra;
+    var json;
+    try { json = JSON.stringify(entry); } catch (e) { json = name + ' (could not stringify: ' + e.message + ')'; }
+    __probe.log.push(json);
+    console.log('[probe]', json);
+    var li = document.createElement('li');
+    li.textContent = json;
+    document.getElementById('log').appendChild(li);
+  }
+
+  var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+  __probe.apiBefore = Tawk_API;
+
+  [
+    'onBeforeLoad', 'onLoad', 'onStatusChange', 'onChatMaximized', 'onChatMinimized', 'onChatHidden',
+    'onChatStarted', 'onChatEnded', 'onPrechatSubmit', 'onOfflineSubmit',
+    'onChatMessageVisitor', 'onChatMessageAgent', 'onChatMessageSystem',
+    'onAgentJoinChat', 'onAgentLeaveChat', 'onChatSatisfaction', 'onVisitorNameChanged',
+    'onFileUpload', 'onTagsUpdated', 'onTranscriptRequest',
+    'onUnreadCountChanged' // not in the docs; set only to check whether it ever fires
+  ].forEach(function (name) {
+    var handler = function () {
+      var extra;
+      if (name === 'onLoad') {
+        // Test C: is it still the same Tawk_API object, and are our handlers still attached?
+        extra = {
+          sameApiObject: window.Tawk_API === __probe.apiBefore,
+          handlersReplaced: Object.keys(__probe.handlers).filter(function (n) {
+            return window.Tawk_API[n] !== __probe.handlers[n];
+          })
+        };
+      }
+      probeLog(name, Array.prototype.slice.call(arguments), extra);
+    };
+    __probe.handlers[name] = handler;
+    Tawk_API[name] = handler;
+  });
+  </script>
+
+  <!--Start of Tawk.to Script-->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='https://embed.tawk.to/6acd61bec4812e34cadda4a3/1k4p4bk17';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+  <!--End of Tawk.to Script-->
+</body>
+</html>
