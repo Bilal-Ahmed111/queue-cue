@@ -15,6 +15,12 @@ Key: [ ] to do, [x] done. Owner in brackets.
 - [x] Research: Playwright testing with an unpacked extension. Save to notes/research/playwright.md (researcher). Tests can't click Chrome's permission prompt; plan for this in Phase 2
 
 ### Manual checks (reviewer adds)
+Note: the test page only loads while Claude Code has started the local server (ask it to "start the test-site server"). If the page says "can't be reached", the server isn't running; that's not a bug.
+- [ ] Open http://localhost:8080 in your own Chrome (not Claude Code's browser). You should see the "Queue Cue Test Site" heading and, after a few seconds, the Tawk.to chat button in the bottom corner.
+- [ ] Click the chat button and send a message such as "hello". With your Tawk.to dashboard open in another tab and set to Online, the message should appear there, and a reply you type in the dashboard should appear in the test page's chat window.
+- [ ] Set your dashboard status to Away or Invisible, refresh the test page and open the chat. You should get the leave-a-message form instead of live chat. Set yourself back to Online afterwards.
+- [ ] Open http://localhost:8080/probe.html, chat and reply from the dashboard. Each event should appear as a new line in the list on the page (for example one containing onChatMessageAgent with your reply text).
+- [ ] Open https://github.com/Bilal-Ahmed111/queue-cue after Claude Code has pushed. You should see the notes/research and test-site folders. (Right now 10 commits are saved only on this PC.)
 
 ## Phase 2: Fake chat and automated tests
 - [ ] Fake chat page in test/fake-chat/ that fires agent-joined, agent-message and visitor-message events at the press of a button, matching the real API as described in the research notes
@@ -73,6 +79,15 @@ Key: [ ] to do, [x] done. Owner in brackets.
 - [ ] README for the GitHub repo
 - [ ] Screenshots and a 30-second demo video (Bilal)
 - [ ] Chrome Web Store developer account (one-time fee) and submission (Bilal)
+
+## Open questions for Phases 2-3 (from the Phase 1 review)
+- Hook timing: Tawk.to reads its callbacks once at load, so the MAIN-world hook must run first. Test that a registered MAIN-world script at document_start runs before the page's inline scripts. Avoid creating Tawk_API on non-Tawk sites (e.g. a getter/setter on window.Tawk_API itself). Confirm one-time reading for onAgentJoinChat too.
+- A site handler set after Tawk.to has loaded is normally never called, but our wrapper would call it. Decide whether to allow that.
+- De-duplication: no message ID, and every open tab fires. Settle messageKey (e.g. chatId + text hash + short time window) and guard against two tabs writing to storage at once. Quiet rule and keep-awake must work with several tabs of one chat.
+- onChatStarted fires again on every reload, so it doesn't mean a new chat. Not yet tested live: onChatEnded, and replay when the widget is minimised or the chat has ended.
+- Tests can't click Chrome's permission prompt: use a test copy of manifest.json with the test site already granted (playwright.md option A); the real prompt goes on the manual checklist.
+- Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule: needs Bilal's OK.
+- The open questions at the end of chrome-mv3.md and playwright.md become Phase 2-3 smoke tests. Check Chrome-version claims against the bundled Chromium.
 
 ## Decisions (don't reopen without a reason)
 - Official vendor events first; HTML watching is the fallback only.
