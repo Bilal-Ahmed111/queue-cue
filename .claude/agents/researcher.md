@@ -2,7 +2,7 @@
 name: researcher
 description: Looks up and verifies facts from official documentation: chat vendor JavaScript APIs (Tawk.to, Zendesk), Chrome extension APIs, Playwright and ntfy. Use before relying on any API or behaviour that isn't already verified in notes/research/. Saves findings to notes/research/.
 tools: Read, Grep, Glob, WebSearch, WebFetch, Write
-model: sonnet
+model: claude-sonnet-5-5
 effort: medium
 ---
 
