@@ -2,7 +2,7 @@
 name: reviewer
 description: Independent reviewer and tester. Use at the end of every phase and whenever Bilal asks for a review. Reviews the phase's changes against CLAUDE.md, writes "try to break it" tests, runs the full test suite and writes Bilal's manual checklist into PROGRESS.md. Never edits extension code.
 tools: Read, Grep, Glob, Bash, Write, Edit
-model: opus
+model: claude-opus-5-5
 effort: high
 ---
 
