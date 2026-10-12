@@ -59,6 +59,7 @@ Safe-wrapping implication (an inference, not documented): define `Tawk_API.onX` 
    - Default: the docs do not state it. Switching it on reveals the options, which implies off by default. Your own result (works on localhost:8080) is consistent with off. Don't treat as documented.
    - UNOFFICIAL: a tawk.to community post (https://community.tawk.to/t/support-localhost-in-availability-restriction-domain-restriction/13786) says restriction lists only accept public domains, so localhost can't be added. Not read in full.
 (c) Official: "When your widget is offline, visitors will see the Offline Form" and can submit a message. Customizable under Chat Widget > Widget Content > Offline state. https://help.tawk.to/article/using-the-offline-form
+   - OBSERVED 2026-10-13 (real widget, Bilal's account): with the agent set to Away, the widget still offered live chat, not the Offline Form. Invisible not tested.
    - Widget goes offline automatically only if "Widget offline when all Agent(s) offline" is turned on in Visibility Settings (reported by search summary of https://help.tawk.to/article/the-difference-between-online-away-and-invisible, not read in full). A Widget Scheduler overrides it. Possible "hide widget when offline" option: not confirmed.
 
 ## Recommended tests on http://localhost:8080 (real widget; paste into DevTools console or add to a temporary script)

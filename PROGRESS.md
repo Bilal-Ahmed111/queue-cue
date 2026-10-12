@@ -18,8 +18,8 @@ Key: [ ] to do, [x] done. Owner in brackets.
 Note: the test page only loads while Claude Code has started the local server (ask it to "start the test-site server"). If the page says "can't be reached", the server isn't running; that's not a bug.
 - [ ] Open http://localhost:8080 in your own Chrome (not Claude Code's browser). You should see the "Queue Cue Test Site" heading and, after a few seconds, the Tawk.to chat button in the bottom corner.
 - [ ] Click the chat button and send a message such as "hello". With your Tawk.to dashboard open in another tab and set to Online, the message should appear there, and a reply you type in the dashboard should appear in the test page's chat window.
-- [ ] Set your dashboard status to Away or Invisible, refresh the test page and open the chat. You should get the leave-a-message form instead of live chat. Set yourself back to Online afterwards.
-- [ ] Open http://localhost:8080/probe.html, chat and reply from the dashboard. Each event should appear as a new line in the list on the page (for example one containing onChatMessageAgent with your reply text).
+- [x] Set your dashboard status to Away or Invisible, refresh the test page and open the chat. You should get the leave-a-message form instead of live chat. Set yourself back to Online afterwards. Result (2026-10-13): with Away, live chat was still offered, not the form. Not a problem for Queue Cue, which only reacts once an agent joins or replies.
+- [x] Open http://localhost:8080/probe.html, chat and reply from the dashboard. Each event should appear as a new line in the list on the page (for example one containing onChatMessageAgent with your reply text).
 - [ ] Open https://github.com/Bilal-Ahmed111/queue-cue after Claude Code has pushed. You should see the notes/research and test-site folders. (Right now 10 commits are saved only on this PC.)
 
 ## Phase 2: Fake chat and automated tests
