@@ -38,6 +38,10 @@
     document.getElementById('log').appendChild(li);
   }
 
+  // probe.html?mode=accessor: onChatMessageAgent becomes a getter/setter holding our wrapper,
+  // the way the extension's hook would install it before Tawk.to loads.
+  var accessorMode = /[?&]mode=accessor\b/.test(location.search);
+
   var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
   __probe.apiBefore = Tawk_API;
 
@@ -49,6 +53,21 @@
     'onFileUpload', 'onTagsUpdated', 'onTranscriptRequest',
     'onUnreadCountChanged' // not in the docs; set only to check whether it ever fires
   ].forEach(function (name) {
+    if (accessorMode && name === 'onChatMessageAgent') {
+      var siteHandler = null;
+      var wrapper = function () {
+        probeLog('ACCESSOR wrapper ' + name, Array.prototype.slice.call(arguments));
+        if (typeof siteHandler === 'function') siteHandler.apply(this, arguments);
+      };
+      Object.defineProperty(Tawk_API, name, {
+        configurable: true,
+        enumerable: true,
+        get: function () { probeLog('getter read ' + name, []); return wrapper; },
+        set: function (fn) { siteHandler = fn; probeLog('setter called ' + name, []); }
+      });
+      __probe.handlers[name] = wrapper;
+      return;
+    }
     var handler = function () {
       var extra;
       if (name === 'onLoad') {
@@ -80,5 +99,12 @@
   })();
   </script>
   <!--End of Tawk.to Script-->
+
+  <script type="text/javascript">
+  // Imitates a site that sets its own handler after our hook but before Tawk.to finishes loading.
+  if (accessorMode) {
+    Tawk_API.onChatMessageAgent = function (m) { probeLog('SITE handler onChatMessageAgent', [m]); };
+  }
+  </script>
 </body>
 </html>

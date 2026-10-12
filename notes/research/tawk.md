@@ -69,3 +69,36 @@ Each handler should just `console.log(name, JSON.stringify(arg))`.
 - Test D (two tabs): open two tabs on the site, send an agent reply, and see which tabs log.
 - Test E (iframe): check `window.Tawk_API` exists in the top page only (and in frames); log from top page when widget is used.
 - Test F: log `onChatStarted`/`onChatEnded`/`onStatusChange` timing, and call `isChatOngoing()` / `isVisitorEngaged()` at each step.
+
+## 7. Live test results (REAL Tawk.to widget, 2026-10-13)
+Source: test-site/probe.html (logs every callback) on http://localhost:8080, run in Claude Code's built-in Chromium browser. Bilal replied as the agent from the Tawk.to dashboard. Desktop layout, widget maximised. These are observations from one account on one day, not documented guarantees. They answer the "NOT documented" items in sections 1, 2, 4 and 5 above.
+
+Callback arguments (answers section 1):
+- `onChatMessageVisitor` and `onChatMessageAgent` get `{ message: "<text>", attachments: [] }`. No message ID, no timestamp.
+- `onAgentJoinChat` gets `{ name, position, image, id }`. `id` is the agent's ID (example `"6acd6103a9b845a5a533b885"`), `position` was `""`.
+- `onChatStarted` gets `{ chatId: "<uuid>" }`, although the docs say it gets nothing.
+- `onBeforeLoad` and `onLoad` get nothing. `onStatusChange` got `"online"`.
+- `onChatMessageSystem` never fired, including when the agent joined.
+- `onUnreadCountChanged(count)` EXISTS, although it is not in the docs. It fired with 0 when the visitor sent a message, then 1, 2, 3 as agent replies arrived, and sometimes reset to 0 about 1.2 s later. When it resets wasn't consistent, so don't rely on it.
+
+Replay of old messages (answers section 2):
+- After a page refresh with an ongoing chat (agent had joined and replied twice), and in a second tab opened on the same chat: NO `onChatMessageVisitor`, `onChatMessageAgent` or `onAgentJoinChat` fired for the old messages, even though the widget showed them.
+- `onChatStarted` DOES fire again on every page load of an ongoing chat, with the same `chatId`, before `onLoad`. So it must not be treated as "a new chat started".
+- Not tested: refreshing with the widget minimised, or after the chat has ended.
+
+Load order and state (one run, times since page start):
+- `onBeforeLoad` (~75-115 ms), then `onStatusChange("online")` (~85-130 ms), then `onChatStarted` if a chat exists (~250-290 ms), then `onLoad` (~715-970 ms).
+- `getStatus()` returns `""` before `onLoad` and `"online"` after.
+- `isVisitorEngaged()` becomes true when the visitor sends a message.
+- `isChatOngoing()` stays false after the visitor's message and after the agent joins. It becomes true only at the first agent message, and is true at `onLoad` when reloading an ongoing chat.
+
+How callbacks are attached (answers section 4). This matters most for the hook design:
+- Tawk.to keeps the `Tawk_API` object from the snippet (same object after `onLoad`). It does not overwrite handlers set before it loads.
+- Tawk.to reads each `Tawk_API.onX` ONCE, when its script starts (the getter was read at 55 ms, before `onBeforeLoad`), and keeps its own copy.
+- Replacing `Tawk_API.onChatMessageAgent` after load has NO effect, whether by plain assignment or by `Object.defineProperty` with a getter. The original function kept firing.
+- A getter/setter defined BEFORE Tawk.to loads works. The site's later assignment (still before Tawk.to loads) went to our setter, Tawk.to read our wrapper through the getter, and on an agent reply our wrapper fired and then called the site's handler, in the same tick.
+- Consequence: the hook must be installed before Tawk.to's script runs (`document_start`). If it runs later, the callbacks can't be attached and only the HTML fallback would work.
+
+Several tabs and frames (answers section 5):
+- Two tabs open on the same chat: BOTH fired `onChatMessageAgent` (and `onUnreadCountChanged`) for every agent reply, at the same moment. Alerts must be de-duplicated across tabs.
+- The widget's 5 iframes are same-origin `about:blank` frames with no `Tawk_API` of their own. Callbacks fire in the top page only.
