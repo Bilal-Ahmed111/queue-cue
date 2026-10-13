@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 to 3 done; next is step 4 (keep-awake). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
+Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 to 4 done; next is step 5 (reviewer). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
 Bilal's Chrome: 155.0.8059.79 (updated from 154 on 2026-10-14). Tests use Playwright's Chromium 156, so flag any feature newer than 155. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
@@ -49,7 +49,7 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [x] Tawk.to detector for agent joined and agent message (HTML fallback only if official events fail) (src/detectors/tawk.js; also visitor message and chat ended. No HTML fallback: the official events work. messageKey = type + a fingerprint of the text, never the text. Events before Tawk.to's onLoad are ignored, with a 5-second fallback if onLoad never comes)
 - [x] Desktop notification naming the site; clicking it brings the chat tab to the front; quiet only when the chat tab is visible and focused (src/background/alerts.js; tested with the fake chat in test/e2e/alerts.spec.js. One notification per site, replaced by the next. Quiet = Chrome's focused window shows a tab that reported the event AND that tab's page said visible and focused; the decision waits 0.5 s for every tab's copy. Manual checks: the real Windows notification, clicking it from another app, and switching to another app)
 - [x] No alerts for old messages after a page refresh; no duplicate alerts (old messages: the detector ignores anything before Tawk.to's onLoad. Duplicates: the same key on the same site within 10 s is one message, kept in chrome.storage.session so it survives the service worker stopping; tested with a forced stop)
-- [ ] PC kept awake while a chat is active, and always released afterwards
+- [x] PC kept awake while a chat is active, and always released afterwards (src/background/keep-awake.js, level "system": the screen may switch off, sleep is blocked. On with any chat message or agent join on a watched site; off when the chat ends, all its tabs close or leave the site, the site is no longer watched, or after 60 minutes with no chat activity (chrome.alarms). Tested with the fake chat in test/e2e/keep-awake.spec.js; whether Windows really stays awake is a manual check)
 - [ ] All tests pass; reviewer PASS; committed
 
 ### Manual checks (reviewer adds)
@@ -125,3 +125,4 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - The computer must be on with Chrome open for any alert, including phone alerts.
 - Some platforms' events may not fire in pop-out chat windows.
 - Chats can time out on the company's side. The nudge reduces this but can't prevent it.
+- Keep-awake can't stop the laptop sleeping when the lid is closed or the sleep button is pressed. On a Modern Standby laptop on battery (Bilal's is one), Windows may end it a few minutes after its sleep timeout (research; to be checked).

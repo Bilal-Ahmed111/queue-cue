@@ -85,6 +85,8 @@ QueueCue.alerts = (function () {
         kind: 'event', type: event.type, platform: event.platform, messageKey: event.messageKey,
         site: event.site, tabId: event.tabId, page: event.page
       });
+      // Every copy counts here, so keep-awake knows each tab the chat is open in.
+      await QueueCue.keepAwake.onEvent(event);
 
       var now = Date.now();
       var recent = prune(await readStored(RECENT_KEY), now);
