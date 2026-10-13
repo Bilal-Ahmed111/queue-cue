@@ -415,3 +415,9 @@ Short answers. Confidence: low-medium; all three need one real-Chrome test.
 5. 5-minute accessor-property test with the real Tawk snippet and the fake chat (Q5).
 6. `registerContentScripts` MAIN + document_start on real Chrome 154 (Q6).
 7. Playwright: forced worker stop (see playwright.md section 10).
+
+## Live result: popup on real Chrome 154 (2026-10-13, Bilal's Chrome 154.0.8037.98, Windows 11, fake chat at 127.0.0.1)
+Phase 3 step 1 build, unpacked, opened from the toolbar on http://127.0.0.1:47813/. This was the fake chat page, not a real vendor site.
+- Q1 (activeTab): WORKS. The popup read the tab's address with activeTab only (it showed the site and offered "Watch chats on this site", which it only does when it has a web address).
+- Q7 (popup during the prompt): the popup STAYED OPEN while Chrome's "Allow access?" prompt showed, and after Allow it showed "Watching chats on this site." Reopening the popup still said watching. So on Chrome 154 the popup's own code after the grant does run; the onAdded path remains as a backup.
+- Not yet checked: whether onRemoved fires when access is removed at chrome://extensions (Q7c).
