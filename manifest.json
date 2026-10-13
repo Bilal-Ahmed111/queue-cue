@@ -20,6 +20,6 @@
   "background": {
     "service_worker": "src/background/service-worker.js"
   },
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": ["storage", "scripting", "activeTab", "notifications"],
   "optional_host_permissions": ["https://*/*", "http://*/*"]
 }

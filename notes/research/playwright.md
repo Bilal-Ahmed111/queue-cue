@@ -263,3 +263,8 @@ Labels: OFFICIAL = playwright.dev, developer.chrome.com, chromedevtools.github.i
 4. From the extension page send `chrome.runtime.sendMessage({type:'ping'})` (or just call `sw.evaluate(() => globalThis.__m)` with a 10 s timeout) and assert: `__m` is `undefined`; `chrome.storage.local.get('k')` is `{k:1}`; `context.serviceWorkers()` still has exactly one extension worker and no new 'serviceworker' event fired (use a counter on `context.on('serviceworker')`).
 5. Record which method worked and the Chromium version in this file. Put the working helper in test/e2e as `stopServiceWorker(context, page, extId)`.
 - Alternative if neither CDP method works: reload the extension through `chrome.runtime.reload()` from the worker. That is NOT equivalent (it also clears `storage.session` and re-runs install logic), so it cannot test "state survives a restart" for session storage; treat only as a last resort.
+
+### 10.8 Result (2026-10-14, Playwright 1.64, Chromium 156, our test run)
+- Method B WORKS: a CDP session on an extension page (the popup opened as a tab), `ServiceWorker.enable`, find our version (`scriptURL` starting `chrome-extension://<id>/`, `runningStatus` "running"), `ServiceWorker.stopWorker({versionId})`, then wait for `runningStatus` "stopped".
+- After the stop, a message from an extension page (or a content script) wakes the worker: in-memory globals are gone, chrome.storage.session and local are kept, the top-level start-up code runs again, Playwright keeps the same Worker object and no new 'serviceworker' event fires.
+- Helper: test/e2e/service-worker-restart.js (`stopServiceWorker(context, extensionId)`), checked by test/e2e/service-worker-restart.spec.js. Method A was not needed.

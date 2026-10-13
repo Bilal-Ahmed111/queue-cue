@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0, 1 and 2 done; next is step 3 (alerts: duplicates, quiet rule, notifications, click to focus). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
+Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 to 3 done; next is step 4 (keep-awake). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
 Bilal's Chrome: 154.0.8037.98 (Stable). Tests use Playwright's Chromium 156, so flag any feature newer than 154. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
@@ -47,8 +47,8 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [x] Placeholder icons in icons/ (Chrome needs one for notifications; real icons in Phase 8)
 - [x] Hook (MAIN world) and relay (ISOLATED world) (src/content/; events reach the service worker and the dev-mode log; tested with the fake chat in test/e2e/tawk-events.spec.js)
 - [x] Tawk.to detector for agent joined and agent message (HTML fallback only if official events fail) (src/detectors/tawk.js; also visitor message and chat ended. No HTML fallback: the official events work. messageKey = type + a fingerprint of the text, never the text. Events before Tawk.to's onLoad are ignored, with a 5-second fallback if onLoad never comes)
-- [ ] Desktop notification naming the site; clicking it brings the chat tab to the front; quiet only when the chat tab is visible and focused
-- [ ] No alerts for old messages after a page refresh; no duplicate alerts
+- [x] Desktop notification naming the site; clicking it brings the chat tab to the front; quiet only when the chat tab is visible and focused (src/background/alerts.js; tested with the fake chat in test/e2e/alerts.spec.js. One notification per site, replaced by the next. Quiet = Chrome's focused window shows a tab that reported the event AND that tab's page said visible and focused; the decision waits 0.5 s for every tab's copy. Manual checks: the real Windows notification, clicking it from another app, and switching to another app)
+- [x] No alerts for old messages after a page refresh; no duplicate alerts (old messages: the detector ignores anything before Tawk.to's onLoad. Duplicates: the same key on the same site within 10 s is one message, kept in chrome.storage.session so it survives the service worker stopping; tested with a forced stop)
 - [ ] PC kept awake while a chat is active, and always released afterwards
 - [ ] All tests pass; reviewer PASS; committed
 
@@ -100,7 +100,7 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - De-duplication: no message ID, and every open tab fires. messageKey SETTLED in step 2: type + fingerprint of the text (no chatId, because a tab may not know it); the service worker will treat the same key on the same site within about 10 seconds as one message (step 3), with one write at a time. Quiet rule and keep-awake must work with several tabs of one chat.
 - onChatStarted fires again on every reload, so it doesn't mean a new chat. Not yet tested live: onChatEnded, and replay when the widget is minimised or the chat has ended.
 - Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
-- Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Research done (playwright.md section 10): Playwright's debugger keeps it alive; force a stop with CDP ServiceWorker.stopWorker or Target.closeTarget. Try it in step 3.
+- Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. SETTLED in step 3: CDP ServiceWorker.stopWorker from an extension page works (playwright.md 10.8; helper test/e2e/service-worker-restart.js).
 - chrome.power (research, from Chromium source): a service worker stop does NOT release keep-awake; an extension reload or disable does. Unverified: on Modern Standby laptops on battery, Windows may cancel the request about 5 minutes after the sleep timeout. Bilal's laptop DOES use Modern Standby (Windows system log, 2026-10-14), so test keep-awake on battery as well as plugged in. Manual check with `powercfg /requests` in an admin terminal.
 - Tested by Bilal on real Chrome 154 (2026-10-13, fake chat): activeTab lets the popup read the address, and the popup STAYS OPEN during the "Allow access?" prompt and shows "Watching" afterwards. Still unknown: whether onRemoved fires when access is removed at chrome://extensions. The code treats these events as hints and always re-checks with Chrome; the popup re-checks when it opens.
 - Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule. APPROVED by Bilal 2026-10-13; CLAUDE.md updated.

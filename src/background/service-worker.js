@@ -19,6 +19,15 @@ chrome.permissions.onRemoved.addListener(function (permissions) {
   QueueCue.sites.onPermissionsRemoved(permissions).catch(reportError('Forgetting a site whose access was removed'));
 });
 
+// Clicking a notification brings the chat tab to the front; closing it forgets where it pointed.
+chrome.notifications.onClicked.addListener(function (notificationId) {
+  QueueCue.alerts.openChat(notificationId).catch(reportError('Going to the chat from a notification'));
+});
+
+chrome.notifications.onClosed.addListener(function (notificationId) {
+  QueueCue.alerts.forget(notificationId).catch(reportError('Forgetting a closed notification'));
+});
+
 // Messages from the popup and from the relay content script. A message only counts as the popup's
 // if it comes from the popup page of this extension.
 function fromPopup(sender) {
@@ -69,3 +78,5 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 // Each time the worker starts: drop sites whose access was removed while it was asleep, and
 // re-register any watched site whose scripts went missing (for example after an extension update).
 QueueCue.sites.reconcile().catch(reportError('Checking watched sites at start-up'));
+// And finish any alert decision the previous worker didn't get to before it stopped.
+QueueCue.alerts.decideDue().catch(reportError('Finishing alert decisions at start-up'));
