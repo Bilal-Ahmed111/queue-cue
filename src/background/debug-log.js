@@ -1,5 +1,6 @@
-// Dev-mode alert log. Tests can't see real notifications, so in the test copy of the extension
-// every alert is also written here, in chrome.storage.session, where a test can read it.
+// Dev-mode log. Tests can't see real notifications, so in the test copy of the extension every chat
+// event received and every alert is also written here, in chrome.storage.session, where a test can
+// read it. Entries carry a "kind" ("event" for now; alerts arrive in Phase 3 step 3).
 // Does nothing unless QueueCue.config.debugLog is true.
 self.QueueCue = self.QueueCue || {};
 

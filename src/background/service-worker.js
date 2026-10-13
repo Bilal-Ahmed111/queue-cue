@@ -1,7 +1,7 @@
 // Queue Cue service worker.
 // Paths are relative to this file. Event listeners must be added at the top level of this script,
 // so they exist when Chrome wakes the worker for an event.
-importScripts('config.js', 'debug-log.js', 'sites.js');
+importScripts('config.js', 'debug-log.js', 'sites.js', 'alerts.js');
 
 function reportError(what) {
   return function (error) {
@@ -19,14 +19,24 @@ chrome.permissions.onRemoved.addListener(function (permissions) {
   QueueCue.sites.onPermissionsRemoved(permissions).catch(reportError('Forgetting a site whose access was removed'));
 });
 
-// Messages from the popup. Content-script messages arrive here too (from the relay, in a later step);
-// a message only counts as the popup's if it comes from the popup page of this extension.
+// Messages from the popup and from the relay content script. A message only counts as the popup's
+// if it comes from the popup page of this extension.
 function fromPopup(sender) {
   return sender.id === chrome.runtime.id && typeof sender.url === 'string' &&
     sender.url.indexOf(chrome.runtime.getURL('src/popup/')) === 0;
 }
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  if (message && message.queueCue === 'event') {
+    QueueCue.alerts.receive(message, sender).then(function (accepted) {
+      sendResponse({ ok: accepted });
+    }, function (error) {
+      reportError('Handling a chat event')(error);
+      sendResponse({ ok: false });
+    });
+    return true;
+  }
+
   if (!fromPopup(sender) || !message || message.queueCue !== 'popup') return false;
 
   var work;

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Site Handlers Test</title>
+</head>
+<body>
+  <h1>Site Handlers Test</h1>
+  <p>The fake chat, plus the site's own Tawk.to handlers, set in the ways real sites set them. Tests compare what these handlers see with and without Queue Cue: it must be exactly the same.</p>
+
+  <script type="text/javascript">
+  window.siteCalls = [];
+  function record(name) {
+    return function (arg) {
+      window.siteCalls.push(name + ': ' + JSON.stringify(arg === undefined ? null : arg));
+    };
+  }
+  // 1. Tawk_API created as an object literal, with a handler already in it.
+  window.Tawk_API = { onChatMessageVisitor: record('visitor message (object literal)') };
+  </script>
+
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  // 2. Plain assignment after the snippet's first line.
+  Tawk_API.onAgentJoinChat = record('agent joined');
+  // 3. Chaining: keep the earlier handler and call it from the new one.
+  Tawk_API.onChatMessageAgent = record('agent message (first handler)');
+  var earlierAgentHandler = Tawk_API.onChatMessageAgent;
+  Tawk_API.onChatMessageAgent = function (message) {
+    earlierAgentHandler(message);
+    window.siteCalls.push('agent message (chained handler): ' + JSON.stringify(message));
+  };
+  // 4. A handler that throws.
+  Tawk_API.onChatEnded = function () {
+    window.siteCalls.push('chat ended (throws)');
+    throw new Error('Site handler failed on purpose');
+  };
+  // 5. Handlers set after Tawk.to has loaded. Tawk.to never calls these, so Queue Cue mustn't either.
+  Tawk_API.onLoad = function () {
+    window.siteCalls.push('load');
+    Tawk_API.onChatMessageAgent = record('agent message (set after load)');
+    Tawk_API.onChatMessageVisitor = record('visitor message (set after load)');
+  };
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='fake-tawk.js';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+</body>
+</html>

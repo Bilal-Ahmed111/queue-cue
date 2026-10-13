@@ -20,6 +20,8 @@
 // Simplifications (the fake does less than the real widget):
 // - Agent actions need a visitor message first, though real agents can start a chat themselves.
 // - onUnreadCountChanged (undocumented, seen in the live test) is never fired.
+// Test option (set before this script loads): window.FakeTawkOptions = { skipOnLoad: true } stops it
+// before onLoad, to test what happens if Tawk.to never finishes loading.
 (function () {
   'use strict';
 
@@ -39,6 +41,7 @@
   };
 
   var api = window.Tawk_API = window.Tawk_API || {};
+  var options = window.FakeTawkOptions || {};
 
   // Read every callback once, now, like the real widget does.
   var handlers = {};
@@ -213,6 +216,7 @@
     fire('onStatusChange', 'online');
     var chat = activeChat();
     if (chat) fire('onChatStarted', { chatId: chat.chatId });
+    if (options.skipOnLoad) return;
     setTimeout(function () {
       loaded = true;
       renderWidget();

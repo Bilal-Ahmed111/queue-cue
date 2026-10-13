@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 and 1 done; next is step 2 (hook, Tawk.to detector and relay). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
+Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0, 1 and 2 done; next is step 3 (alerts: duplicates, quiet rule, notifications, click to focus). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
 Bilal's Chrome: 154.0.8037.98 (Stable). Tests use Playwright's Chromium 156, so flag any feature newer than 154. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
@@ -45,8 +45,8 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [x] Popup "Watch chats on this site" button: per-site permission, content scripts registered for that site (src/popup/, src/background/sites.js; tested with the fake chat in test/e2e/popup.spec.js. The real "Allow access?" prompt and activeTab are manual checks)
 - [x] Popup "Stop watching this site" button (approved 2026-10-13)
 - [x] Placeholder icons in icons/ (Chrome needs one for notifications; real icons in Phase 8)
-- [ ] Hook (MAIN world) and relay (ISOLATED world)
-- [ ] Tawk.to detector for agent joined and agent message (HTML fallback only if official events fail)
+- [x] Hook (MAIN world) and relay (ISOLATED world) (src/content/; events reach the service worker and the dev-mode log; tested with the fake chat in test/e2e/tawk-events.spec.js)
+- [x] Tawk.to detector for agent joined and agent message (HTML fallback only if official events fail) (src/detectors/tawk.js; also visitor message and chat ended. No HTML fallback: the official events work. messageKey = type + a fingerprint of the text, never the text. Events before Tawk.to's onLoad are ignored, with a 5-second fallback if onLoad never comes)
 - [ ] Desktop notification naming the site; clicking it brings the chat tab to the front; quiet only when the chat tab is visible and focused
 - [ ] No alerts for old messages after a page refresh; no duplicate alerts
 - [ ] PC kept awake while a chat is active, and always released afterwards
@@ -95,9 +95,9 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [ ] Chrome Web Store developer account (one-time fee) and submission (Bilal)
 
 ## Open questions for Phases 2-3 (from the Phase 1 review)
-- Hook timing: Tawk.to reads its callbacks once at load, so the MAIN-world hook must run first. SETTLED in Phase 2: a registered MAIN-world script at document_start runs before the page's scripts (Playwright's Chromium 156, fake chat). Still to do: avoid creating Tawk_API on non-Tawk sites (e.g. a getter/setter on window.Tawk_API itself). Confirm one-time reading for onAgentJoinChat too.
-- A site handler set after Tawk.to has loaded is normally never called, but our wrapper would call it. DECIDED 2026-10-13: copy Tawk.to, don't call it.
-- De-duplication: no message ID, and every open tab fires. Settle messageKey (e.g. chatId + text hash + short time window) and guard against two tabs writing to storage at once. Quiet rule and keep-awake must work with several tabs of one chat.
+- Hook timing: Tawk.to reads its callbacks once at load, so the MAIN-world hook must run first. SETTLED in Phase 2: a registered MAIN-world script at document_start runs before the page's scripts (Playwright's Chromium 156, fake chat). DONE in Phase 3 step 2: a getter/setter on window.Tawk_API wraps the object only once the site creates it (value stays undefined on non-Tawk pages; side effect: `'Tawk_API' in window` is true on watched sites). Still to confirm with the real widget: one-time reading for onAgentJoinChat.
+- A site handler set after Tawk.to has loaded is normally never called, but our wrapper would call it. DECIDED 2026-10-13: copy Tawk.to, don't call it. DONE in step 2: test/fake-chat/site-handlers.html checks the site's handlers see exactly the same calls with and without Queue Cue (chaining, throwing and late handlers).
+- De-duplication: no message ID, and every open tab fires. messageKey SETTLED in step 2: type + fingerprint of the text (no chatId, because a tab may not know it); the service worker will treat the same key on the same site within about 10 seconds as one message (step 3), with one write at a time. Quiet rule and keep-awake must work with several tabs of one chat.
 - onChatStarted fires again on every reload, so it doesn't mean a new chat. Not yet tested live: onChatEnded, and replay when the widget is minimised or the chat has ended.
 - Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
 - Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Research done (playwright.md section 10): Playwright's debugger keeps it alive; force a stop with CDP ServiceWorker.stopWorker or Target.closeTarget. Try it in step 3.
