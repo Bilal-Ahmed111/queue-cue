@@ -43,6 +43,15 @@ const server = http.createServer((req, res) => {
   });
 });
 
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Close whatever is using it (maybe another "node test/serve.js") and try again.`);
+  } else {
+    console.error('Fake chat server error:', error.message);
+  }
+  process.exit(1);
+});
+
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`Fake chat server on http://127.0.0.1:${PORT}/`);
 });

@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 2 (Fake chat and automated tests): built and tested, reviewer next. Phase 1 done 2026-10-13. Run tests with: npm test
+Current phase: 2 (Fake chat and automated tests): reviewer PASS (second review); waiting for Bilal's manual checklist. Phase 1 done 2026-10-13. Run tests with: npm test
 
 Key: [ ] to do, [x] done. Owner in brackets.
 
@@ -26,15 +26,15 @@ Note: the test page only loads while Claude Code has started the local server (a
 - [x] Fake chat page in test/fake-chat/ that fires agent-joined, agent-message and visitor-message events at the press of a button, matching the real API as described in the research notes
 - [x] Playwright installed with its bundled Chromium; a first test loads the extension successfully. Browsers live inside node_modules (test/playwright.env) because Chromium won't start from AppData on this PC
 - [x] Dev-mode alert log that tests can read (on only in the test copy, test/.build/extension)
-- [ ] Reviewer: first "try to break it" tests written; verdict PASS
+- [x] Reviewer: first "try to break it" tests written; verdict PASS (first review FAIL on two test-tool bugs, fixed; second review PASS, 45 tests passing)
 
 ### Manual checks (reviewer adds)
 Note: `npm test` starts its own copy of the fake chat page and stops it when the tests finish. To open the page yourself, first run `node test/serve.js` in a terminal in the project folder and leave that window open (press Ctrl+C to stop it). Nothing in this phase shows real notifications yet; that comes in Phase 3.
-- [ ] In a terminal in the project folder, run `npm test`. After about a minute it should end with lines like "35 passed" and "1 skipped" (the skipped one is a slow optional test), and no "failed" line. (If you see "spawn UNKNOWN", it was started some other way; use exactly `npm test`.)
+- [ ] In a terminal in the project folder, run `npm test`. After about a minute it should end with lines like "45 passed" and "1 skipped" (the skipped one is a slow 40-second test that only runs when asked for), and no "failed" line. (If you see "spawn UNKNOWN", it was started some other way; use exactly `npm test`.)
 - [ ] Run `node test/serve.js`, then open http://127.0.0.1:47813/ in your own Chrome. You should see "Fake Tawk.to Chat" with buttons, and a small "Fake chat (online)" box in the bottom-right corner.
 - [ ] Click "Visitor sends a message", then "Agent joins", then "Agent sends a message". The box should list "You: Visitor message 1" and "Test Agent: Agent reply 1".
 - [ ] Refresh the page. The same messages should still be in the box (the fake remembers the chat, like the real widget).
-- [ ] Open http://127.0.0.1:47813/ in a second tab and click "Agent sends a message" there. Switch back to the first tab: the new reply should show there too.
+- [ ] Open http://127.0.0.1:47813/ in a second tab and click "Agent sends a message" there. Switch back to the first tab: a second "Test Agent: Agent reply 1" line should show there too, without refreshing (each tab numbers its own clicks, so the number repeats).
 - [ ] Click "End chat" (the box should say "Chat ended"), then "Forget the chat" (the box empties). Stop the server with Ctrl+C when done.
 - [ ] Open chrome://extensions in your own Chrome, turn on Developer mode, click "Load unpacked" and choose the project folder (the one with manifest.json). "Queue Cue" should appear with no red "Errors" button. It does nothing visible yet. Remove it afterwards if you like.
 
@@ -96,6 +96,7 @@ Note: `npm test` starts its own copy of the fake chat page and stops it when the
 - Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
 - Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Find a way to force a stop before Phase 3 relies on it (research first).
 - Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule: needs Bilal's OK.
+- In the fake chat, a site onChatMessageVisitor handler that throws stops onChatStarted firing in that tab (other tabs are fine). Real behaviour is unknown; keep it in mind for Phase 3's "site handler throws" tests.
 - The open questions at the end of chrome-mv3.md and playwright.md become Phase 2-3 smoke tests. Check Chrome-version claims against the bundled Chromium.
 
 ## Decisions (don't reopen without a reason)
