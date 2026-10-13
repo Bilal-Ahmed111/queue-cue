@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fake Tawk.to Chat</title>
+  <style>
+    body { font-family: sans-serif; margin: 16px; max-width: 640px; }
+    button { margin: 4px 4px 4px 0; padding: 6px 10px; }
+  </style>
+</head>
+<body>
+  <h1>Fake Tawk.to Chat</h1>
+  <p>A test page that imitates the real Tawk.to widget's JavaScript API (see fake-tawk.js). The buttons stand in for the visitor and for an agent replying from the Tawk.to dashboard.</p>
+
+  <h2>Visitor</h2>
+  <button id="visitor-message" type="button">Visitor sends a message</button>
+
+  <h2>Agent (dashboard)</h2>
+  <button id="agent-join" type="button">Agent joins</button>
+  <button id="agent-message" type="button">Agent sends a message</button>
+  <button id="end-chat" type="button">End chat</button>
+
+  <h2>Test controls</h2>
+  <button id="reset" type="button">Forget the chat</button>
+
+  <!-- Same shape as the real Tawk.to snippet, but it loads the fake script. -->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='fake-tawk.js';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+
+  <script type="text/javascript">
+  (function () {
+    var visitorCount = 0;
+    var agentCount = 0;
+    function on(id, action) {
+      document.getElementById(id).addEventListener('click', function () {
+        if (window.FakeTawk) action(window.FakeTawk);
+      });
+    }
+    on('visitor-message', function (t) { visitorCount += 1; t.visitorMessage('Visitor message ' + visitorCount); });
+    on('agent-join', function (t) { t.agentJoin(); });
+    on('agent-message', function (t) { agentCount += 1; t.agentMessage('Agent reply ' + agentCount); });
+    on('end-chat', function (t) { t.endChat(); });
+    on('reset', function (t) { t.reset(); });
+  })();
+  </script>
+</body>
+</html>
