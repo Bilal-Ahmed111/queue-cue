@@ -1,0 +1,96 @@
+:root {
+  --text: #1f2933;
+  --muted: #52606d;
+  --accent: #0f766e;
+  --accent-hover: #115e59;
+  --surface: #ffffff;
+  --border: #cbd2d9;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e4e7eb;
+    --muted: #9aa5b1;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --surface: #1f2933;
+    --border: #3e4c59;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font: 14px/1.45 system-ui, sans-serif;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+p {
+  margin: 0 0 12px;
+}
+
+.site {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.site:empty {
+  display: none;
+}
+
+button {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: transparent;
+  color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}

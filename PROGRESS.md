@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); step 0 research in progress. Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
+Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 and 1 done; next is step 2 (hook, Tawk.to detector and relay). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
 Bilal's Chrome: 154.0.8037.98 (Stable). Tests use Playwright's Chromium 156, so flag any feature newer than 154. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
@@ -41,9 +41,10 @@ Note: `npm.cmd test` starts its own copy of the fake chat page and stops it when
 
 ## Phase 3: Core build (Tawk.to)
 Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site permission; 2 hook, Tawk.to detector and relay; 3 alerts (duplicates, quiet rule, notifications, click to focus); 4 keep-awake; 5 reviewer.
-- [ ] Research: activeTab for reading the current tab's address in the popup; forcing a service worker stop in Playwright; Windows notes for notifications (requireInteraction). Smoke test: tab visible/focused in Playwright (researcher + Claude Code)
-- [ ] Popup "Watch chats on this site" button: per-site permission, content scripts registered for that site
-- [ ] Popup "Stop watching this site" button (approved 2026-10-13)
+- [x] Research: activeTab for reading the current tab's address in the popup; forcing a service worker stop in Playwright; Windows notes for notifications (requireInteraction). Smoke test: tab visible/focused in Playwright (researcher + Claude Code). Notes in chrome-mv3.md and playwright.md ("Phase 3 research"). Smoke test: under Playwright every page claims to be visible and focused, but chrome.tabs knows the real active tab (test/e2e/smoke-focus.spec.js)
+- [x] Popup "Watch chats on this site" button: per-site permission, content scripts registered for that site (src/popup/, src/background/sites.js; tested with the fake chat in test/e2e/popup.spec.js. The real "Allow access?" prompt and activeTab are manual checks)
+- [x] Popup "Stop watching this site" button (approved 2026-10-13)
+- [x] Placeholder icons in icons/ (Chrome needs one for notifications; real icons in Phase 8)
 - [ ] Hook (MAIN world) and relay (ISOLATED world)
 - [ ] Tawk.to detector for agent joined and agent message (HTML fallback only if official events fail)
 - [ ] Desktop notification naming the site; clicking it brings the chat tab to the front; quiet only when the chat tab is visible and focused
@@ -99,7 +100,9 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - De-duplication: no message ID, and every open tab fires. Settle messageKey (e.g. chatId + text hash + short time window) and guard against two tabs writing to storage at once. Quiet rule and keep-awake must work with several tabs of one chat.
 - onChatStarted fires again on every reload, so it doesn't mean a new chat. Not yet tested live: onChatEnded, and replay when the widget is minimised or the chat has ended.
 - Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
-- Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Find a way to force a stop before Phase 3 relies on it (research first).
+- Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Research done (playwright.md section 10): Playwright's debugger keeps it alive; force a stop with CDP ServiceWorker.stopWorker or Target.closeTarget. Try it in step 3.
+- chrome.power (research, from Chromium source): a service worker stop does NOT release keep-awake; an extension reload or disable does. Unverified: on Modern Standby laptops on battery, Windows may cancel the request about 5 minutes after the sleep timeout. Manual check with `powercfg /requests` in an admin terminal.
+- Unknown until tested on real Chrome 154: whether the popup closes during the "Allow access?" prompt, whether onRemoved fires when access is removed at chrome://extensions, and whether activeTab lets the popup read the address. The code treats these events as hints and always re-checks with Chrome; the popup re-checks when it opens.
 - Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule. APPROVED by Bilal 2026-10-13; CLAUDE.md updated.
 - In the fake chat, a site onChatMessageVisitor handler that throws stops onChatStarted firing in that tab (other tabs are fine). Real behaviour is unknown; keep it in mind for Phase 3's "site handler throws" tests.
 - The open questions at the end of chrome-mv3.md and playwright.md become Phase 2-3 smoke tests. Check Chrome-version claims against the bundled Chromium.
