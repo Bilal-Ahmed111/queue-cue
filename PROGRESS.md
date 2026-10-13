@@ -1,6 +1,7 @@
 # Progress: Queue Cue
 
-Current phase: 3 (Core build, Tawk.to): plan to be approved by Bilal. Phase 1 done 2026-10-13. Phase 2 done 2026-10-13. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
+Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); step 0 research in progress. Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
+Bilal's Chrome: 154.0.8037.98 (Stable). Tests use Playwright's Chromium 156, so flag any feature newer than 154. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
 
@@ -39,7 +40,10 @@ Note: `npm.cmd test` starts its own copy of the fake chat page and stops it when
 - [x] Open chrome://extensions in your own Chrome, turn on Developer mode, click "Load unpacked" and choose the project folder (the one with manifest.json). "Queue Cue" should appear with no red "Errors" button. It does nothing visible yet. Remove it afterwards if you like.
 
 ## Phase 3: Core build (Tawk.to)
+Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site permission; 2 hook, Tawk.to detector and relay; 3 alerts (duplicates, quiet rule, notifications, click to focus); 4 keep-awake; 5 reviewer.
+- [ ] Research: activeTab for reading the current tab's address in the popup; forcing a service worker stop in Playwright; Windows notes for notifications (requireInteraction). Smoke test: tab visible/focused in Playwright (researcher + Claude Code)
 - [ ] Popup "Watch chats on this site" button: per-site permission, content scripts registered for that site
+- [ ] Popup "Stop watching this site" button (approved 2026-10-13)
 - [ ] Hook (MAIN world) and relay (ISOLATED world)
 - [ ] Tawk.to detector for agent joined and agent message (HTML fallback only if official events fail)
 - [ ] Desktop notification naming the site; clicking it brings the chat tab to the front; quiet only when the chat tab is visible and focused
@@ -90,12 +94,12 @@ Note: `npm.cmd test` starts its own copy of the fake chat page and stops it when
 
 ## Open questions for Phases 2-3 (from the Phase 1 review)
 - Hook timing: Tawk.to reads its callbacks once at load, so the MAIN-world hook must run first. SETTLED in Phase 2: a registered MAIN-world script at document_start runs before the page's scripts (Playwright's Chromium 156, fake chat). Still to do: avoid creating Tawk_API on non-Tawk sites (e.g. a getter/setter on window.Tawk_API itself). Confirm one-time reading for onAgentJoinChat too.
-- A site handler set after Tawk.to has loaded is normally never called, but our wrapper would call it. Decide whether to allow that.
+- A site handler set after Tawk.to has loaded is normally never called, but our wrapper would call it. DECIDED 2026-10-13: copy Tawk.to, don't call it.
 - De-duplication: no message ID, and every open tab fires. Settle messageKey (e.g. chatId + text hash + short time window) and guard against two tabs writing to storage at once. Quiet rule and keep-awake must work with several tabs of one chat.
 - onChatStarted fires again on every reload, so it doesn't mean a new chat. Not yet tested live: onChatEnded, and replay when the widget is minimised or the chat has ended.
 - Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
 - Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Find a way to force a stop before Phase 3 relies on it (research first).
-- Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule: needs Bilal's OK.
+- Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule. APPROVED by Bilal 2026-10-13; CLAUDE.md updated.
 - In the fake chat, a site onChatMessageVisitor handler that throws stops onChatStarted firing in that tab (other tabs are fine). Real behaviour is unknown; keep it in mind for Phase 3's "site handler throws" tests.
 - The open questions at the end of chrome-mv3.md and playwright.md become Phase 2-3 smoke tests. Check Chrome-version claims against the bundled Chromium.
 
@@ -107,6 +111,11 @@ Note: `npm.cmd test` starts its own copy of the fake chat page and stops it when
 - Three agents only: builder (main session), researcher, reviewer.
 - Tawk.to first, Zendesk second.
 - Name: Queue Cue (GitHub repo: queue-cue). Folder on the PC is still "Live Chat Notifier".
+- (2026-10-13) The popup asks for the site permission; the service worker registers the content scripts when Chrome reports the grant (permissions.onAdded). The popup re-checks every time it opens, because Chrome may close it while the prompt shows.
+- (2026-10-13) A site handler set after Tawk.to has loaded is not called, matching Tawk.to's own behaviour.
+- (2026-10-13) The event shape gains "chat_ended", so keep-awake can be released when a chat ends.
+- (2026-10-13) The popup has a "Stop watching this site" button.
+- (2026-10-13) Desktop notifications stay on screen until clicked or closed (requireInteraction), if Windows supports it. They name the site only, never message text.
 
 ## Known limitations
 - The computer must be on with Chrome open for any alert, including phone alerts.
