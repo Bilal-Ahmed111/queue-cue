@@ -421,3 +421,10 @@ Phase 3 step 1 build, unpacked, opened from the toolbar on http://127.0.0.1:4781
 - Q1 (activeTab): WORKS. The popup read the tab's address with activeTab only (it showed the site and offered "Watch chats on this site", which it only does when it has a web address).
 - Q7 (popup during the prompt): the popup STAYED OPEN while Chrome's "Allow access?" prompt showed, and after Allow it showed "Watching chats on this site." Reopening the popup still said watching. So on Chrome 154 the popup's own code after the grant does run; the onAdded path remains as a backup.
 - Not yet checked: whether onRemoved fires when access is removed at chrome://extensions (Q7c).
+
+## Live result: notifications on real Chrome 155 (2026-10-14, Bilal's Chrome 155.0.8059.79, Windows 11, fake chat at 127.0.0.1)
+Phase 3 step 3 build, unpacked. Fake chat page, not a real vendor site.
+- The Windows notification "Agent replied on 127.0.0.1" appeared while Bilal was in another app.
+- Clicking it brought Chrome to the front with the chat tab (Q3/Q6: chrome.windows.update focused works from a notification click on Windows 11).
+- Quiet rule: a reply while Bilal was looking at the chat gave no notification.
+- Not yet settled: whether requireInteraction keeps it on screen beyond Windows' usual few seconds (Bilal clicked after about 2 seconds).

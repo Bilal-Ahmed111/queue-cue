@@ -1,7 +1,7 @@
 # Progress: Queue Cue
 
 Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 to 3 done; next is step 4 (keep-awake). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
-Bilal's Chrome: 154.0.8037.98 (Stable). Tests use Playwright's Chromium 156, so flag any feature newer than 154. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
+Bilal's Chrome: 155.0.8059.79 (updated from 154 on 2026-10-14). Tests use Playwright's Chromium 156, so flag any feature newer than 155. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
 
@@ -102,7 +102,7 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
 - Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. SETTLED in step 3: CDP ServiceWorker.stopWorker from an extension page works (playwright.md 10.8; helper test/e2e/service-worker-restart.js).
 - chrome.power (research, from Chromium source): a service worker stop does NOT release keep-awake; an extension reload or disable does. Unverified: on Modern Standby laptops on battery, Windows may cancel the request about 5 minutes after the sleep timeout. Bilal's laptop DOES use Modern Standby (Windows system log, 2026-10-14), so test keep-awake on battery as well as plugged in. Manual check with `powercfg /requests` in an admin terminal.
-- Tested by Bilal on real Chrome 154 (2026-10-13, fake chat): activeTab lets the popup read the address, and the popup STAYS OPEN during the "Allow access?" prompt and shows "Watching" afterwards. Still unknown: whether onRemoved fires when access is removed at chrome://extensions. The code treats these events as hints and always re-checks with Chrome; the popup re-checks when it opens.
+- Tested by Bilal on real Chrome 154 (2026-10-13, fake chat): activeTab lets the popup read the address, and the popup STAYS OPEN during the "Allow access?" prompt and shows "Watching" afterwards. Still unknown: whether onRemoved fires when access is removed at chrome://extensions. Also tested by Bilal on Chrome 155 (2026-10-14, fake chat, step 3 build): the Windows notification appears, clicking it brings Chrome to the front from another app, and no notification while looking at the chat. Still to check: that it stays on screen well beyond 5 seconds. The code treats these events as hints and always re-checks with Chrome; the popup re-checks when it opens.
 - Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule. APPROVED by Bilal 2026-10-13; CLAUDE.md updated.
 - In the fake chat, a site onChatMessageVisitor handler that throws stops onChatStarted firing in that tab (other tabs are fine). Real behaviour is unknown; keep it in mind for Phase 3's "site handler throws" tests.
 - The open questions at the end of chrome-mv3.md and playwright.md become Phase 2-3 smoke tests. Check Chrome-version claims against the bundled Chromium.
