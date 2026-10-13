@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 2 (Fake chat and automated tests): reviewer PASS (second review); waiting for Bilal's manual checklist. Phase 1 done 2026-10-13. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
+Current phase: 3 (Core build, Tawk.to): plan to be approved by Bilal. Phase 1 done 2026-10-13. Phase 2 done 2026-10-13. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
 
@@ -31,12 +31,12 @@ Note: the test page only loads while Claude Code has started the local server (a
 ### Manual checks (reviewer adds)
 Note: `npm.cmd test` starts its own copy of the fake chat page and stops it when the tests finish. To open the page yourself, first run `node test/serve.js` in a terminal in the project folder and leave that window open (press Ctrl+C to stop it). Nothing in this phase shows real notifications yet; that comes in Phase 3.
 - [x] In a terminal in the project folder, run `npm.cmd test`. After about a minute it should end with lines like "45 passed" and "1 skipped" (the skipped one is a slow 40-second test that only runs when asked for), and no "failed" line. (If you see "spawn UNKNOWN", it was started some other way; use exactly `npm.cmd test`.) Result (2026-10-13): 45 passed, 1 skipped, 32 s. Plain `npm test` was blocked by PowerShell ("running scripts is disabled"); `npm.cmd test` works.
-- [ ] Run `node test/serve.js`, then open http://127.0.0.1:47813/ in your own Chrome. You should see "Fake Tawk.to Chat" with buttons, and a small "Fake chat (online)" box in the bottom-right corner.
-- [ ] Click "Visitor sends a message", then "Agent joins", then "Agent sends a message". The box should list "You: Visitor message 1" and "Test Agent: Agent reply 1".
-- [ ] Refresh the page. The same messages should still be in the box (the fake remembers the chat, like the real widget).
-- [ ] Open http://127.0.0.1:47813/ in a second tab and click "Agent sends a message" there. Switch back to the first tab: a second "Test Agent: Agent reply 1" line should show there too, without refreshing (each tab numbers its own clicks, so the number repeats).
-- [ ] Click "End chat" (the box should say "Chat ended"), then "Forget the chat" (the box empties). Stop the server with Ctrl+C when done.
-- [ ] Open chrome://extensions in your own Chrome, turn on Developer mode, click "Load unpacked" and choose the project folder (the one with manifest.json). "Queue Cue" should appear with no red "Errors" button. It does nothing visible yet. Remove it afterwards if you like.
+- [x] Run `node test/serve.js`, then open http://127.0.0.1:47813/ in your own Chrome. You should see "Fake Tawk.to Chat" with buttons, and a small "Fake chat (online)" box in the bottom-right corner.
+- [x] Click "Visitor sends a message", then "Agent joins", then "Agent sends a message". The box should list "You: Visitor message 1" and "Test Agent: Agent reply 1".
+- [x] Refresh the page. The same messages should still be in the box (the fake remembers the chat, like the real widget).
+- [x] Open http://127.0.0.1:47813/ in a second tab and click "Agent sends a message" there. Switch back to the first tab: a second "Test Agent: Agent reply 1" line should show there too, without refreshing (each tab numbers its own clicks, so the number repeats).
+- [x] Click "End chat" (the box should say "Chat ended"), then "Forget the chat" (the box empties). Stop the server with Ctrl+C when done.
+- [x] Open chrome://extensions in your own Chrome, turn on Developer mode, click "Load unpacked" and choose the project folder (the one with manifest.json). "Queue Cue" should appear with no red "Errors" button. It does nothing visible yet. Remove it afterwards if you like.
 
 ## Phase 3: Core build (Tawk.to)
 - [ ] Popup "Watch chats on this site" button: per-site permission, content scripts registered for that site
