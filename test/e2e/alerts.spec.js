@@ -252,3 +252,15 @@ test('closing a notification forgets where it pointed', async ({ context, servic
   const targets = await inServiceWorker(serviceWorker, async () => (await chrome.storage.session.get('notificationTargets')).notificationTargets);
   expect(targets).toEqual({});
 });
+
+test('the fake chat\'s "in 5 seconds" button (for trying alerts by hand) alerts once you look away', async ({ context, serviceWorker }) => {
+  await setUp(context, serviceWorker);
+  const chat = await openChat(context);
+  await chat.click('#visitor-message');
+  await chat.click('#agent-message-later');
+  await expect(chat.locator('#later-note')).toBeVisible();
+  await openElsewhere(context);
+  const [alert] = await waitForLog(serviceWorker, 'alert', 1);
+  expect(alert.title).toBe('Agent replied on 127.0.0.1');
+  await expect(chat.locator('#later-note')).toBeHidden();
+});
