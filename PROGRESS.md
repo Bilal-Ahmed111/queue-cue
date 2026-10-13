@@ -89,6 +89,7 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [ ] Privacy policy on GitHub Pages: what the extension reads, that only a short alert goes to ntfy, and that nothing is stored anywhere else
 - [ ] Icons; a name without "Zendesk" or "Tawk.to" in it; the description says "works with"
 - [ ] README for the GitHub repo
+- [ ] CHROMEWEBSTORE.md: everything the Chrome Web Store listing asks for, including a reason for each permission (format from the Chrome team's chrome-extensions skill, Modern Web Guidance). Added 2026-10-13 at Bilal's request
 - [ ] Screenshots and a 30-second demo video (Bilal)
 - [ ] Chrome Web Store developer account (one-time fee) and submission (Bilal)
 
