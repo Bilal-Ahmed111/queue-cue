@@ -4,7 +4,8 @@
   "private": true,
   "description": "Chrome extension that alerts you when a website's live-chat agent joins or replies.",
   "scripts": {
-    "test": "playwright test"
+    "test": "node --env-file=test/playwright.env node_modules/@playwright/test/cli.js test",
+    "install-browsers": "node --env-file=test/playwright.env node_modules/@playwright/test/cli.js install chromium"
   },
   "license": "UNLICENSED",
   "devDependencies": {
