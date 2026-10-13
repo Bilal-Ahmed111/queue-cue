@@ -251,3 +251,9 @@ chrome.runtime.onInstalled [OFFICIAL, /runtime]:
 6. Does `Window.focused` go false when a non-Chrome app has focus on Windows? Does `windows.update focused:true` actually raise Chrome from a notification click? Test (Bilal-only for the real OS part).
 7. `crypto.randomUUID` in the worker, and ntfy POST with custom headers (CORS): quick console tests.
 8. Alarm minimum and `persistAcrossSessions` need Chrome 120+ and 150+ respectively; check version of Playwright's bundled Chromium and Bilal's Chrome (chrome://version).
+
+## Results from our own tests (2026-10-13, Playwright's Chromium 156, fake chat page)
+Observed in test/e2e/extension.spec.js. This was the fake page, not a real vendor site.
+- Open question 3 (MAIN world + document_start via registerContentScripts): WORKS. A script registered with `world: "MAIN", runAt: "document_start"` ran before any of the page's scripts. At that point `document.scripts.length` was 0, `window.Tawk_API` was undefined and `document.readyState` was "loading". Its global was visible to the page, which confirms MAIN world. Registration applied to the next page load.
+- Match pattern `http://127.0.0.1/*` in host_permissions covered http://127.0.0.1:4173, so a pattern without a port matched a page on a port.
+- Unpacked extension: loading the project root works even with node_modules inside it.

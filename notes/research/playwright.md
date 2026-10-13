@@ -185,3 +185,14 @@ OFFICIAL: https://playwright.dev/docs/test-webserver
 - https://groups.google.com/a/chromium.org/g/chromium-extensions/c/1-g8EFx2BBY/m/S0ET5wPjCAAJ (UNOFFICIAL, Chrome team mailing list)
 - https://github.com/microsoft/playwright/issues/32755 (UNOFFICIAL)
 - https://github.com/microsoft/playwright/issues/38670 (UNOFFICIAL, via search summary only)
+
+## 9. Results from our own setup (2026-10-13, Playwright 1.64, bundled Chromium 156.0.8078.4, Windows 11)
+Observed in this project's test runs (test/e2e/extension.spec.js), not documented guarantees.
+- Install problem on this PC: `npx playwright install chromium` put the browsers under `%LOCALAPPDATA%\ms-playwright`, but chrome.exe there would not start: Node reported `spawn UNKNOWN`, and Windows reported "side-by-side configuration is incorrect" (Application log, SideBySide event 33: dependent assembly `156.0.8078.4` not found). The headless shell started fine because it doesn't use that startup file.
+  - Cause: `C:\Users\Bilal\AppData` carries an extra access rule for an app-container SID (`S-1-15-3-3557520199-...`), inherited by everything below it. The same three files copied to a folder without that rule started; copied to a sibling folder under ms-playwright (with the rule), they failed. Which app added the rule is unknown.
+  - Fix used (no change to Windows settings): `PLAYWRIGHT_BROWSERS_PATH=0` keeps the browsers in `node_modules/playwright-core/.local-browsers`. It is set in test/playwright.env and read by `npm test` / `npm run install-browsers` (`node --env-file=...`). Playwright reads the variable once when it starts, so setting it in playwright.config.js would be too late. Always run the tests with `npm test`.
+- The first launch of the freshly installed Chromium took more than 30 s once (probably Windows scanning the new program). Later launches took about 1 s.
+- Smoke test 1: the extension loads headless with `channel: 'chromium'` from the spaced project path. The real project root (with node_modules inside) also loads as an unpacked extension.
+- Smoke test 2: the service worker did NOT stop during 40 s idle under Playwright (a global set before the wait was still there). So we can't count on idle shutdown in tests. To test recovery after a restart, Phase 3 needs a forced stop, e.g. via chrome://serviceworker-internals or a CDP call. Research before relying on it.
+- Smoke test 4 (partly): a dynamically registered content script injected into the fake chat at http://127.0.0.1:4173 with `host_permissions: ["http://127.0.0.1/*"]`. So a pattern without a port matched port 4173. `context.route` pages were not tried.
+- Not yet tried: 3 (permissions.request from a page), 5 (visibility/focus in headless), 6 (notifications.getAll).

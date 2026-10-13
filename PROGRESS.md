@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 2 (Fake chat and automated tests): plan awaiting Bilal's approval. Phase 1 done 2026-10-13.
+Current phase: 2 (Fake chat and automated tests): built and tested, reviewer next. Phase 1 done 2026-10-13. Run tests with: npm test
 
 Key: [ ] to do, [x] done. Owner in brackets.
 
@@ -23,9 +23,9 @@ Note: the test page only loads while Claude Code has started the local server (a
 - [x] Open https://github.com/Bilal-Ahmed111/queue-cue after Claude Code has pushed. You should see the notes/research and test-site folders. (Right now 10 commits are saved only on this PC.)
 
 ## Phase 2: Fake chat and automated tests
-- [ ] Fake chat page in test/fake-chat/ that fires agent-joined, agent-message and visitor-message events at the press of a button, matching the real API as described in the research notes
-- [ ] Playwright installed with its bundled Chromium; a first test loads the extension successfully
-- [ ] Dev-mode alert log that tests can read
+- [x] Fake chat page in test/fake-chat/ that fires agent-joined, agent-message and visitor-message events at the press of a button, matching the real API as described in the research notes
+- [x] Playwright installed with its bundled Chromium; a first test loads the extension successfully. Browsers live inside node_modules (test/playwright.env) because Chromium won't start from AppData on this PC
+- [x] Dev-mode alert log that tests can read (on only in the test copy, test/.build/extension)
 - [ ] Reviewer: first "try to break it" tests written; verdict PASS
 
 ### Manual checks (reviewer adds)
@@ -81,11 +81,12 @@ Note: the test page only loads while Claude Code has started the local server (a
 - [ ] Chrome Web Store developer account (one-time fee) and submission (Bilal)
 
 ## Open questions for Phases 2-3 (from the Phase 1 review)
-- Hook timing: Tawk.to reads its callbacks once at load, so the MAIN-world hook must run first. Test that a registered MAIN-world script at document_start runs before the page's inline scripts. Avoid creating Tawk_API on non-Tawk sites (e.g. a getter/setter on window.Tawk_API itself). Confirm one-time reading for onAgentJoinChat too.
+- Hook timing: Tawk.to reads its callbacks once at load, so the MAIN-world hook must run first. SETTLED in Phase 2: a registered MAIN-world script at document_start runs before the page's scripts (Playwright's Chromium 156, fake chat). Still to do: avoid creating Tawk_API on non-Tawk sites (e.g. a getter/setter on window.Tawk_API itself). Confirm one-time reading for onAgentJoinChat too.
 - A site handler set after Tawk.to has loaded is normally never called, but our wrapper would call it. Decide whether to allow that.
 - De-duplication: no message ID, and every open tab fires. Settle messageKey (e.g. chatId + text hash + short time window) and guard against two tabs writing to storage at once. Quiet rule and keep-awake must work with several tabs of one chat.
 - onChatStarted fires again on every reload, so it doesn't mean a new chat. Not yet tested live: onChatEnded, and replay when the widget is minimised or the chat has ended.
-- Tests can't click Chrome's permission prompt: use a test copy of manifest.json with the test site already granted (playwright.md option A); the real prompt goes on the manual checklist.
+- Tests can't click Chrome's permission prompt: DONE in Phase 2, tests use a test copy with the fake chat pre-granted (test/e2e/global-setup.js). The real prompt goes on the Phase 3 manual checklist.
+- Under Playwright the service worker did not stop after 40 s idle, so restart recovery can't be tested by waiting. Find a way to force a stop before Phase 3 relies on it (research first).
 - Registering content scripts from permissions.onAdded in the service worker (instead of the popup) changes an architecture rule: needs Bilal's OK.
 - The open questions at the end of chrome-mv3.md and playwright.md become Phase 2-3 smoke tests. Check Chrome-version claims against the bundled Chromium.
 
