@@ -2,7 +2,7 @@
 // The copy differs from the real extension in three ways only:
 // 1. The fake chat's address (http://127.0.0.1) is granted up front in host_permissions, because
 //    automated tests can't click Chrome's "Allow access?" prompt (notes/research/playwright.md, section 5).
-// 2. config.js turns the dev-mode alert log on.
+// 2. config.js turns the dev-mode alert log on (that one setting only).
 // 3. Test-only probe scripts are added under test-probes/.
 const fs = require('fs');
 const path = require('path');
@@ -25,12 +25,14 @@ module.exports = async function globalSetup() {
   manifest.host_permissions = [...(manifest.host_permissions || []), FAKE_CHAT_ORIGIN];
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 
-  fs.writeFileSync(
-    path.join(BUILD, 'src', 'background', 'config.js'),
-    '// Test copy (written by test/e2e/global-setup.js).\n' +
-      'self.QueueCue = self.QueueCue || {};\n' +
-      'QueueCue.config = { debugLog: true };\n'
-  );
+  // Change only the debugLog setting, so any setting added to config.js later reaches the test copy too.
+  const configPath = path.join(BUILD, 'src', 'background', 'config.js');
+  const config = fs.readFileSync(configPath, 'utf8');
+  const testConfig = config.replace('debugLog: false', 'debugLog: true');
+  if (testConfig === config) {
+    throw new Error('global-setup: "debugLog: false" not found in src/background/config.js, so the debug log could not be switched on.');
+  }
+  fs.writeFileSync(configPath, testConfig);
 
   fs.cpSync(path.join(__dirname, 'probes'), path.join(BUILD, 'test-probes'), { recursive: true });
 };

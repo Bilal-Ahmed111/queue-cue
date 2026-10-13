@@ -2,7 +2,7 @@
 // (notes/research/tawk.md, section 7). These run without the extension.
 const { test, expect } = require('@playwright/test');
 
-const FAKE_CHAT = 'http://127.0.0.1:4173/';
+const { FAKE_CHAT_URL: FAKE_CHAT } = require('../fake-chat-config');
 
 // Runs before the page's own scripts: attaches a recorder to every Tawk_API callback,
 // the way a site (or our hook) would set handlers before the widget loads.

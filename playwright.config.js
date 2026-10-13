@@ -1,6 +1,7 @@
 // Playwright settings. Run the tests with: npm test
 // Set HEADED=1 to watch the browser while the tests run.
 const { defineConfig } = require('@playwright/test');
+const { FAKE_CHAT_URL } = require('./test/fake-chat-config');
 
 module.exports = defineConfig({
   testDir: 'test/e2e',
@@ -10,11 +11,11 @@ module.exports = defineConfig({
   globalSetup: require.resolve('./test/e2e/global-setup.js'),
   webServer: {
     command: 'node test/serve.js',
-    url: 'http://127.0.0.1:4173/',
+    url: FAKE_CHAT_URL,
     reuseExistingServer: true,
     timeout: 30000
   },
   use: {
-    baseURL: 'http://127.0.0.1:4173'
+    baseURL: FAKE_CHAT_URL
   }
 });

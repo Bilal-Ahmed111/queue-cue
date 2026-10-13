@@ -8,6 +8,7 @@ QueueCue.debugLog = (function () {
   var MAX_ENTRIES = 500;
 
   // Writes run one after another so two alerts arriving together can't overwrite each other.
+  // Only the service worker writes the log, so this in-memory queue is enough.
   var pending = Promise.resolve();
 
   function enabled() {
@@ -19,7 +20,7 @@ QueueCue.debugLog = (function () {
     var write = pending.then(async function () {
       var stored = await chrome.storage.session.get(STORAGE_KEY);
       var log = stored[STORAGE_KEY] || [];
-      log.push(Object.assign({ at: Date.now() }, entry));
+      log.push(Object.assign({}, entry, { at: Date.now() }));
       if (log.length > MAX_ENTRIES) log = log.slice(-MAX_ENTRIES);
       await chrome.storage.session.set({ [STORAGE_KEY]: log });
       return true;

@@ -78,6 +78,7 @@ Callback arguments (answers section 1):
 - `onChatMessageVisitor` and `onChatMessageAgent` get `{ message: "<text>", attachments: [] }`. No message ID, no timestamp.
 - `onAgentJoinChat` gets `{ name, position, image, id }`. `id` is the agent's ID (example `"6acd6103a9b845a5a533b885"`), `position` was `""`.
 - `onChatStarted` gets `{ chatId: "<uuid>" }`, although the docs say it gets nothing.
+- Order when the visitor sent the first message (probe log, 1 ms apart): `onUnreadCountChanged(0)`, then `onChatMessageVisitor`, then `onChatStarted`.
 - `onBeforeLoad` and `onLoad` get nothing. `onStatusChange` got `"online"`.
 - `onChatMessageSystem` never fired, including when the agent joined.
 - `onUnreadCountChanged(count)` EXISTS, although it is not in the docs. It fired with 0 when the visitor sent a message, then 1, 2, 3 as agent replies arrived, and sometimes reset to 0 about 1.2 s later. When it resets wasn't consistent, so don't rely on it.

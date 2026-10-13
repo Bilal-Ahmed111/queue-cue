@@ -2,7 +2,7 @@
 // and settles open questions from notes/research/ (hook timing, service worker going idle).
 const { test, expect, inServiceWorker } = require('./fixtures');
 
-const FAKE_CHAT = 'http://127.0.0.1:4173/';
+const { FAKE_CHAT_URL: FAKE_CHAT } = require('../fake-chat-config');
 
 test.describe('test copy of the extension', () => {
   test('loads from the project folder (whose path has spaces) and starts its service worker', async ({ serviceWorker, extensionId }) => {
@@ -50,7 +50,9 @@ test.describe('test copy of the extension', () => {
   // Finding (2026-10-13, Chromium 156): under Playwright the worker did NOT stop during 40 s idle
   // (the annotation records "false"), so this only shows that it still answers and the log is kept.
   // Phase 3 needs a way to force a stop before it can test recovery after a restart.
+  // It takes 40 s, so it only runs when asked for: set QC_SLOW_TESTS=1.
   test('service worker still answers after 40 seconds idle, and the log is kept', async ({ serviceWorker }) => {
+    test.skip(!process.env.QC_SLOW_TESTS, 'Slow (40 s). Set QC_SLOW_TESTS=1 to run it.');
     test.slow();
     await inServiceWorker(serviceWorker, async () => {
       self.__qcBeforeIdle = true;

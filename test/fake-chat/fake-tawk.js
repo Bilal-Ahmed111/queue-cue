@@ -12,9 +12,14 @@
 // - isChatOngoing() is true only after the first agent message.
 // - After a page refresh, old messages are shown but NOT fired again; onChatStarted fires again.
 // - Every open tab of the site fires agent events (a BroadcastChannel stands in for the server).
-// Not checked against the real widget (assumptions, see the research notes): visitor messages and
-// chat start reaching other tabs, onChatEnded and its argument, and handler errors (the fake lets
-// them throw).
+//   Each tab gets its own copy, so a handler that throws in one tab can't stop the others.
+// Not checked against the real widget (assumptions):
+// - Visitor messages and chat start reaching other tabs.
+// - onChatEnded and its argument; after a chat ends, a refresh does not fire onChatStarted.
+// - Handler errors: the fake lets them throw.
+// Simplifications (the fake does less than the real widget):
+// - Agent actions need a visitor message first, though real agents can start a chat themselves.
+// - onUnreadCountChanged (undocumented, seen in the live test) is never fired.
 (function () {
   'use strict';
 
@@ -130,8 +135,10 @@
   }
 
   function send(type, payload) {
-    deliver(type, payload);
+    // Tell the other tabs first: the real server reaches each tab separately, so a handler that
+    // throws in this tab must not stop them hearing it.
     broadcast(type, payload);
+    deliver(type, payload);
   }
 
   // ---- Actions (used by the page's buttons and by tests) ----
