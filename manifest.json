@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Queue Cue",
+  "version": "0.1.0",
+  "description": "Alerts you when a website's live-chat agent joins or replies, so you can leave the chat tab. Works with Tawk.to.",
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "permissions": ["storage", "scripting"],
+  "optional_host_permissions": ["https://*/*", "http://*/*"]
+}
