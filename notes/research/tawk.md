@@ -208,9 +208,12 @@ Sequence and replay:
 How a chat ends (important for keep-awake):
 - Agent ends it from the dashboard (Bilal wasn't sure which button he used: "End chat", "Leave" or close): ONLY tawkAgentLeaveChat fired, in both tabs. NO tawkChatEnded event and NO onChatEnded callback. `isChatOngoing()` became false. The visitor's widget showed no "chat ended" notice and its text box stayed usable.
 - Visitor ends it (widget menu, "End this chat session", then "End Chat"): tawkUnreadCountChanged(0), tawkChatMinimized, tawkChatEnded (detail null), in both tabs; in tab B the onChatEnded callback too. `isVisitorEngaged()` became false.
+- The dashboard has no "leave the chat" option (Bilal: only ban or hide, and neither shows the visitor that the agent left). So tawkAgentLeaveChat comes from the agent closing or ending the chat on their side.
+- The agent CAN come back (second live test, same day, new chat; Bilal's exact buttons not recorded). Agent joined and sent "reply A"; Bilal closed the chat the same way as in the first test, so tawkAgentLeaveChat fired; about 23 s later he messaged the same visitor again from the dashboard. Both tabs then fired tawkAgentJoinChat (same agent id) and tawkChatMessageAgent ("reply B"), plus the callbacks in tab B. There was no new tawkChatStarted, so it was the same chat, and `isChatOngoing()` was true again.
 - Not tested: an agent transfer (one agent leaves, another joins) and a chat closed by a timeout.
 
 Consequences for Queue Cue (our reasoning):
 - The events carry everything the detector needs: load, agent join, agent message text (for the fingerprint), visitor message and visitor-side chat end. Decision C (listen to window events instead of wrapping callbacks) can go ahead.
-- When the agent ends the chat, Queue Cue only sees tawkAgentLeaveChat, so keep-awake would stay on until the 60-minute limit. This gap is the same with callbacks, so it is not caused by switching to events. Treating "agent left" as the end of the chat needs a decision, as an agent may also leave during a transfer.
+- When the agent ends the chat, Queue Cue only sees tawkAgentLeaveChat, so keep-awake would stay on until the 60-minute limit. This gap is the same with callbacks, so it is not caused by switching to events.
+- "Agent left" does not mean the chat is over: the agent can come back to the same chat. Alerts are unaffected either way (the return fires tawkAgentJoinChat and tawkChatMessageAgent, which alert as usual), but releasing keep-awake at "agent left" would let the PC sleep before a return, and then no alert could fire.
 - `isTrusted` is false, so any script on the page could send a fake tawk event. The trust level is the same as with callbacks (a page script could call `Tawk_API.onX` itself), so this adds no new risk.
