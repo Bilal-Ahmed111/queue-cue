@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Queue Cue Tawk.to Events Probe</title>
+  <style>
+    body { font-family: sans-serif; margin: 16px; }
+    #log { font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Queue Cue Tawk.to Events Probe</h1>
+  <p>Same Tawk.to widget as index.html. Logs every "tawk..." browser event the widget sends on window (notes/research/tawk.md, section 8), with what it carries. Add ?callbacks=1 to the address to also set every Tawk_API callback, to compare the two.</p>
+  <ol id="log"></ol>
+
+  <script type="text/javascript">
+  window.__probe = { t0: performance.now(), log: [] };
+  var withCallbacks = /[?&]callbacks=1\b/.test(location.search);
+
+  function probeLog(entry) {
+    entry.t = Math.round(performance.now() - __probe.t0);
+    var json;
+    try { json = JSON.stringify(entry); } catch (e) { json = entry.name + ' (could not stringify: ' + e.message + ')'; }
+    __probe.log.push(json);
+    console.log('[events-probe]', json);
+    var li = document.createElement('li');
+    li.textContent = json;
+    document.getElementById('log').appendChild(li);
+  }
+
+  var NAMES = ['BeforeLoad', 'Load', 'StatusChange', 'ChatMaximized', 'ChatMinimized', 'ChatHidden',
+    'ChatStarted', 'ChatEnded', 'PrechatSubmit', 'OfflineSubmit', 'ChatMessageVisitor', 'ChatMessageAgent',
+    'ChatMessageSystem', 'AgentJoinChat', 'AgentLeaveChat', 'ChatSatisfaction', 'VisitorNameChanged',
+    'FileUpload', 'TagsUpdated', 'UnreadCountChanged'];
+
+  function describe(label, event) {
+    return {
+      name: label + ' ' + event.type,
+      detail: event.detail === undefined ? '(undefined)' : event.detail,
+      kind: event.constructor && event.constructor.name,
+      bubbles: event.bubbles,
+      onWindow: event.target === window,
+      trusted: event.isTrusted
+    };
+  }
+
+  NAMES.forEach(function (n) {
+    window.addEventListener('tawk' + n, function (event) { probeLog(describe('EVENT', event)); });
+    // Seen on document too? (Only if the widget dispatches there.)
+    document.addEventListener('tawk' + n, function (event) { probeLog(describe('ON DOCUMENT', event)); });
+  });
+
+  // Listeners added only after the widget has loaded: do they still hear later events?
+  window.addEventListener('tawkLoad', function () {
+    ['ChatMessageVisitor', 'ChatMessageAgent', 'AgentJoinChat', 'ChatEnded'].forEach(function (n) {
+      window.addEventListener('tawk' + n, function (event) { probeLog(describe('LATE LISTENER', event)); });
+    });
+  });
+
+  var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+  if (withCallbacks) {
+    NAMES.forEach(function (n) {
+      Tawk_API['on' + n] = function () {
+        probeLog({ name: 'CALLBACK on' + n, args: Array.prototype.slice.call(arguments) });
+      };
+    });
+  }
+  </script>
+
+  <!--Start of Tawk.to Script-->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='https://embed.tawk.to/6acd61bec4812e34cadda4a3/1k4p4bk17';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+  <!--End of Tawk.to Script-->
+</body>
+</html>
