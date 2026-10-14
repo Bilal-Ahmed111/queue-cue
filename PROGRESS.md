@@ -1,6 +1,6 @@
 # Progress: Queue Cue
 
-Current phase: 3 (Core build, Tawk.to): plan approved 2026-10-13 (Bilal took all five recommendations, see Decisions); steps 0 to 4 done; next is step 5 (reviewer). Phase 1 done 2026-10-13. Phase 2 done 2026-10-13.
+Current phase: 3 (Core build, Tawk.to). Steps 0-4 built. First review (2026-10-14): FAIL with 2 bugs. Fixed: keep-awake race with a closing tab, plus smaller points. Still open: a site's "only if missing" handler is lost (reviewer's test break-phase3-site.spec.js:44 fails). Fix approved: listen to Tawk.to's window events instead (see "Next steps" in the Phase 3 section). Tests: 104 passed, 1 failed, 1 skipped.
 Bilal's Chrome: 155.0.8059.79 (updated from 154 on 2026-10-14). Tests use Playwright's Chromium 156, so flag any feature newer than 155. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
@@ -51,6 +51,14 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [x] No alerts for old messages after a page refresh; no duplicate alerts (old messages: the detector ignores anything before Tawk.to's onLoad. Duplicates: the same key on the same site within 10 s is one message, kept in chrome.storage.session so it survives the service worker stopping; tested with a forced stop)
 - [x] PC kept awake while a chat is active, and always released afterwards (src/background/keep-awake.js, level "system": the screen may switch off, sleep is blocked. On with any chat message or agent join on a watched site; off when the chat ends, all its tabs close or leave the site, the site is no longer watched, or after 60 minutes with no chat activity (chrome.alarms). Tested with the fake chat in test/e2e/keep-awake.spec.js; whether Windows really stays awake is a manual check)
 - [ ] All tests pass; reviewer PASS; committed
+
+Next steps (start here in the next session; decisions approved by Bilal 2026-10-14, "all as recommended"):
+1. Live test with the real widget: start the test-site server, open http://localhost:8080/events-probe.html in Claude Code's built-in browser (Claude Code plays the visitor: ask Bilal to confirm before sending test messages), Bilal joins and replies twice from the Tawk.to dashboard, then ends the chat. Record in notes/research/tawk.md section 8: each event's detail (agent message, visitor message, agent join, chat started, chat ended), no replay of old messages after a reload, both tabs fire, and with ?callbacks=1 that events and callbacks both fire. Already seen (2026-10-14, no chat): tawkBeforeLoad (detail null), tawkStatusChange ("online"), tawkLoad (detail null), all CustomEvents on window.
+2. If the live test confirms the message events: rewrite src/detectors/tawk.js to listen to window "tawk..." events only (no Tawk_API getter/setter, no callback wrappers). Make test/fake-chat/fake-tawk.js dispatch the same CustomEvents with the shapes from step 1. Update the tests that rely on wrapping (tawk-events.spec.js, break-phase3-site.spec.js). Update CLAUDE.md's Detection and "Never break the host site" bullets (decision C). If the events turn out not to carry what we need, stop and ask Bilal.
+3. Decision B: clear a site's notification when Bilal switches to that chat tab himself.
+4. Decision D: chrome.tabs.update(tabId, { autoDiscardable: false }) for tabs with an active chat; set it back when the chat ends (no permission needed: chrome-mv3.md, "Tab discarding and freezing").
+5. Decision A: listed under Known limitations (done).
+6. Run the reviewer again until PASS, then Bilal's manual checklist below.
 
 ### Manual checks (reviewer adds)
 All of these use the fake chat in your own Chrome, not the real Tawk.to (that's Phase 4). Already done, so not repeated here: the popup reading the site, the popup staying open during "Allow access?", a notification appearing, clicking it from another app, and no notification while you look at the chat.
@@ -150,9 +158,14 @@ Keeping the PC awake (needs an admin terminal):
 - (2026-10-13) The event shape gains "chat_ended", so keep-awake can be released when a chat ends.
 - (2026-10-13) The popup has a "Stop watching this site" button.
 - (2026-10-13) Desktop notifications stay on screen until clicked or closed (requireInteraction), if Windows supports it. They name the site only, never message text.
+- (2026-10-14) A: the same words from the agent twice within 10 seconds give one alert (messages have no ID). Accepted as a known limitation.
+- (2026-10-14) B: a site's notification is cleared automatically when Bilal switches to that chat tab himself.
+- (2026-10-14) C: Tawk.to detection listens to the widget's window events ("tawkChatMessageAgent" etc., used by Tawk.to's own official add-ons but not documented) instead of wrapping Tawk_API callbacks, once a live test confirms them. Changes CLAUDE.md's architecture bullets.
+- (2026-10-14) D: tabs with an active chat are marked "don't discard" (autoDiscardable false) so Chrome's Memory Saver can't unload them.
 
 ## Known limitations
 - The computer must be on with Chrome open for any alert, including phone alerts.
 - Some platforms' events may not fire in pop-out chat windows.
 - Chats can time out on the company's side. The nudge reduces this but can't prevent it.
+- If the agent sends exactly the same words twice within 10 seconds, only one alert is shown (Tawk.to messages have no ID).
 - Keep-awake can't stop the laptop sleeping when the lid is closed or the sleep button is pressed. On a Modern Standby laptop on battery (Bilal's is one), Windows may end it a few minutes after its sleep timeout (research; to be checked).
