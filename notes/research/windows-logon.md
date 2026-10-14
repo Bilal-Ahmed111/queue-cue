@@ -203,4 +203,4 @@ One headless launch of chromium-1248 (`launchPersistentContext` on a temp folder
 - `os_password_blank` stayed `true`. A real LogonUser probe on an account with a password would have written `false`, so the check used the stored answer and did not call LogonUser.
 - Also written: `had_biometrics_available` and `is_biometric_avaliable` (Windows Hello availability; not a LogonUser call).
 Consequence for the tests (test/e2e/browser-profile.js): seed `os_password_blank: true` on purpose, because it doubles as a tripwire. The time value is rewritten after every check, probe or not, so it can't show whether a probe happened; the blank answer can.
-Still to confirm by Bilal (needs an admin terminal): no new 4625 events for chrome.exe after 22:50 on 2026-10-14.
+CONFIRMED by Bilal (admin terminal, 2026-10-14, after the one-launch check and a full 113-test run with the seeded profiles): 4625 events since 20:00 = 29 (the evening's lockout bursts), since 22:50 = 0.
