@@ -172,3 +172,12 @@ test('when the service worker starts, keep-awake for tabs that are gone is let g
   await wake.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
   await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1', 'off: start-up check']);
 });
+
+test('a site dropped because its access is gone lets the PC sleep', async ({ serviceWorker }) => {
+  await inServiceWorker(serviceWorker, async () => {
+    await chrome.storage.local.set({ watchedSites: ['https://shop.example/*'] });
+    await chrome.storage.session.set({ keepAwake: { tabs: { 7: 'https://shop.example/*' }, lastActivity: Date.now(), on: true } });
+    await QueueCue.sites.reconcile();
+  });
+  await waitForSwitches(serviceWorker, ['off: site no longer watched']);
+});

@@ -15,11 +15,9 @@ chrome.permissions.onAdded.addListener(function (permissions) {
   QueueCue.sites.onPermissionsAdded(permissions).catch(reportError('Watching a newly allowed site'));
 });
 
+// Stopping watching a site also lets the PC sleep if it was kept awake for that site's chat (sites.js).
 chrome.permissions.onRemoved.addListener(function (permissions) {
   QueueCue.sites.onPermissionsRemoved(permissions).catch(reportError('Forgetting a site whose access was removed'));
-  ((permissions && permissions.origins) || []).forEach(function (pattern) {
-    QueueCue.keepAwake.forgetSite(pattern).catch(reportError('Letting the PC sleep after a site was removed'));
-  });
 });
 
 // Keep-awake ends when the chat's tabs close or leave the site, or after 60 minutes with no chat activity.
@@ -77,8 +75,6 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     });
   } else if (message.action === 'unwatch') {
     work = QueueCue.sites.unwatch(message.pattern, { removePermission: true }).then(function () {
-      return QueueCue.keepAwake.forgetSite(message.pattern);
-    }).then(function () {
       return QueueCue.sites.status(message.url);
     });
   } else {
@@ -96,8 +92,10 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
 // Each time the worker starts: drop sites whose access was removed while it was asleep, and
 // re-register any watched site whose scripts went missing (for example after an extension update).
-QueueCue.sites.reconcile().catch(reportError('Checking watched sites at start-up'));
+// Then let the PC sleep if the chat's tabs closed while the worker was stopped (this reads the list of
+// watched sites, so it waits for the first check).
+QueueCue.sites.reconcile().catch(reportError('Checking watched sites at start-up')).then(function () {
+  return QueueCue.keepAwake.checkAtStartUp();
+}).catch(reportError('Checking keep-awake at start-up'));
 // And finish any alert decision the previous worker didn't get to before it stopped.
 QueueCue.alerts.decideDue().catch(reportError('Finishing alert decisions at start-up'));
-// And let the PC sleep if the chat's tabs closed while the worker was stopped.
-QueueCue.keepAwake.checkAtStartUp().catch(reportError('Checking keep-awake at start-up'));

@@ -64,6 +64,15 @@ QueueCue.keepAwake = (function () {
         return apply(state, 'chat ended on ' + event.site);
       }
       if (ACTIVITY.indexOf(event.type) === -1) return undefined;
+      // Events wait their turn, so the tab may have closed or left the site since it sent this one.
+      // Don't bring it back, or keep-awake would stay on for a tab that's gone.
+      var tab = null;
+      try {
+        tab = await chrome.tabs.get(event.tabId);
+      } catch (e) {
+        // Closed.
+      }
+      if (!tab || QueueCue.sites.patternFor(tab.url) !== event.pattern) return undefined;
       state.tabs[event.tabId] = event.pattern;
       state.lastActivity = Date.now();
       return apply(state, 'chat going on ' + event.site);

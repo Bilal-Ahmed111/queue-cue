@@ -110,6 +110,11 @@ QueueCue.sites = (function () {
     });
   }
 
+  // Lets the PC sleep if it was kept awake for a chat on this site (src/background/keep-awake.js).
+  function releaseKeepAwake(pattern) {
+    return QueueCue.keepAwake ? QueueCue.keepAwake.forgetSite(pattern) : Promise.resolve();
+  }
+
   // Stops watching a site. Scripts already running in open pages keep running until they're refreshed.
   // With removePermission, Chrome's access to the site is given back too ("Stop watching this site").
   function unwatch(pattern, options) {
@@ -118,6 +123,7 @@ QueueCue.sites = (function () {
       var next = list.filter(function (p) { return p !== pattern; });
       if (next.length !== list.length) await writeList(next);
       if (isSitePattern(pattern)) await unregister(pattern);
+      await releaseKeepAwake(pattern);
       if (options && options.removePermission && isSitePattern(pattern)) {
         try {
           await chrome.permissions.remove({ origins: [pattern] });
@@ -143,6 +149,7 @@ QueueCue.sites = (function () {
           await ensureRegistered(pattern);
         } else if (isSitePattern(pattern)) {
           await unregister(pattern);
+          await releaseKeepAwake(pattern);
         }
       }
       if (keep.length !== list.length) await writeList(keep);

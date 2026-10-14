@@ -1,7 +1,7 @@
 // Dev-mode log. Tests can't see real notifications, so in the test copy of the extension every chat
 // event received and every alert is also written here, in chrome.storage.session, where a test can
-// read it. Entries carry a "kind": "event" (received), "duplicate", "quiet", "alert", "opened" or
-// "keep-awake" (switched on or off).
+// read it. Entries carry a "kind": "event" (received), "duplicate", "quiet", "alert", "expired",
+// "opened" or "keep-awake" (switched on or off).
 // Does nothing unless QueueCue.config.debugLog is true.
 self.QueueCue = self.QueueCue || {};
 

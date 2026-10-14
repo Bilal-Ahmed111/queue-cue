@@ -81,6 +81,12 @@ QueueCue.alerts = (function () {
       // A page opened before "Stop watching" keeps its scripts until it's refreshed: ignore it.
       var watched = await QueueCue.sites.readList();
       if (watched.indexOf(event.pattern) === -1) return false;
+      // Access removed without Chrome telling us (chrome.permissions.onRemoved isn't guaranteed):
+      // ignore the event and bring the list back in line.
+      if (!(await chrome.permissions.contains({ origins: [event.pattern] }))) {
+        QueueCue.sites.reconcile().catch(reportError);
+        return false;
+      }
       await QueueCue.debugLog.add({
         kind: 'event', type: event.type, platform: event.platform, messageKey: event.messageKey,
         site: event.site, tabId: event.tabId, page: event.page
@@ -123,7 +129,9 @@ QueueCue.alerts = (function () {
     return entry.reports.some(function (r) { return r.tabId === active.id && r.visible && r.focused; });
   }
 
-  // Decides every event that has waited GATHER_MS for its copies from other tabs.
+  // Decides every event that has waited GATHER_MS for its copies from other tabs. One left undecided
+  // for longer than SAME_MESSAGE_MS (only if the worker crashed mid-wait) is dropped: an alert that
+  // turns up much later would point at a chat that has moved on.
   function decideDue() {
     return queue(async function () {
       var now = Date.now();
@@ -136,6 +144,10 @@ QueueCue.alerts = (function () {
       await store(RECENT_KEY, recent);
       for (var i = 0; i < due.length; i++) {
         var entry = recent[due[i]];
+        if (now - entry.firstAt > SAME_MESSAGE_MS) {
+          await QueueCue.debugLog.add({ kind: 'expired', type: entry.type, site: entry.site });
+          continue;
+        }
         var looking = false;
         try {
           looking = await userIsLookingAt(entry);

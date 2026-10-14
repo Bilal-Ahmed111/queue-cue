@@ -264,3 +264,35 @@ test('the fake chat\'s "in 5 seconds" button (for trying alerts by hand) alerts 
   expect(alert.title).toBe('Agent replied on 127.0.0.1');
   await expect(chat.locator('#later-note')).toBeHidden();
 });
+
+test('a decision left unfinished for more than 10 seconds is dropped, not shown late', async ({ context, serviceWorker, extensionId }) => {
+  await setUp(context, serviceWorker);
+  const chat = await openChat(context);
+  const chatTabId = await tabIdOf(chat, serviceWorker);
+  await openElsewhere(context);
+  await inServiceWorker(serviceWorker, async ([site, tabId]) => {
+    await chrome.storage.session.set({ recentEvents: { [`${site} agent_message:0123abcd`]: {
+      firstAt: Date.now() - 60000, type: 'agent_message', site: '127.0.0.1', pattern: site, decided: false,
+      reports: [{ tabId, windowId: (await chrome.tabs.get(tabId)).windowId, visible: true, focused: true }]
+    } } });
+  }, [SITE, chatTabId]);
+
+  await stopServiceWorker(context, extensionId);
+  const wake = await context.newPage();
+  await wake.goto(`chrome-extension://${extensionId}/src/popup/popup.html`);
+  await waitForLog(serviceWorker, 'expired', 1);
+  expect(await logOf(serviceWorker, 'alert')).toHaveLength(0);
+});
+
+test('an event from a site still on the list but whose access is gone is ignored, and the site is dropped', async ({ serviceWorker }) => {
+  const result = await inServiceWorker(serviceWorker, async () => {
+    // As if access had been removed at chrome://extensions without Chrome telling us.
+    await chrome.storage.local.set({ watchedSites: ['https://shop.example/*'] });
+    const message = { queueCue: 'event', type: 'agent_message', platform: 'tawk', messageKey: 'agent_message:0123abcd', page: { visible: false, focused: false } };
+    const sender = { id: chrome.runtime.id, tab: { id: 7, windowId: 1 }, frameId: 0, url: 'https://shop.example/help' };
+    const accepted = await QueueCue.alerts.receive(message, sender);
+    await QueueCue.sites.reconcile(); // waits for the clean-up the event started
+    return { accepted, list: await QueueCue.sites.readList(), log: (await QueueCue.debugLog.read()).map((e) => e.kind) };
+  });
+  expect(result).toEqual({ accepted: false, list: [], log: [] });
+});
