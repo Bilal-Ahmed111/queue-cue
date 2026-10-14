@@ -53,6 +53,36 @@ Plan (approved 2026-10-13), one commit per step: 0 research; 1 popup and site pe
 - [ ] All tests pass; reviewer PASS; committed
 
 ### Manual checks (reviewer adds)
+All of these use the fake chat in your own Chrome, not the real Tawk.to (that's Phase 4). Already done, so not repeated here: the popup reading the site, the popup staying open during "Allow access?", a notification appearing, clicking it from another app, and no notification while you look at the chat.
+
+Getting ready (each time Claude Code changes the code):
+- [ ] At chrome://extensions, click the round "reload" arrow on the Queue Cue card. Then refresh the chat page. Open pages keep running the old code until you refresh them.
+- [ ] In a terminal in the project folder, run `node test/serve.js` and leave that window open. Open http://127.0.0.1:47813/ in Chrome. Click the Queue Cue icon. It should say "Watching chats on this site." (if it doesn't, click "Watch chats on this site", Allow, then refresh the page). Click "Forget the chat", then "Visitor sends a message" so a chat is going.
+
+Notifications:
+- [ ] Stays on screen: click "Agent sends a message in 5 seconds", then at once click on another app (for example Notepad). A notification "Agent replied on 127.0.0.1" with a Close button should appear and stay in the corner of the screen for at least 1 minute, untouched. Then click it: Chrome comes to the front on the chat tab and the notification goes away.
+- [ ] A second alert after the first: click "Agent sends a message in 5 seconds" and switch to another app. When the notification appears, leave it. Go back to the chat, click the button again and switch away again. The new notification should pop up again (not stay hidden), and your notification list (click the date and time in the taskbar) should show only one from Queue Cue. Click it: Chrome comes to the front on the chat tab.
+- [ ] Chat tab still selected, but you're in another app: keep the chat tab as the selected tab in Chrome, click "Agent sends a message in 5 seconds", then click on another app so Chrome sits behind it. A notification should appear. (This checks that Queue Cue knows you're not looking even though the chat tab is the one showing in Chrome.)
+- [ ] Another tab: click "Agent sends a message in 5 seconds", then switch to a different Chrome tab (for example a new tab). A notification should appear. Clicking it switches back to the chat tab.
+- [ ] Minimised: click "Agent sends a message in 5 seconds", then minimise Chrome (the "_" button). A notification should appear. Clicking it brings Chrome back up on the chat tab.
+- [ ] Chat in two tabs: open http://127.0.0.1:47813/ in a second tab as well. Click "Agent sends a message in 5 seconds" in one of them and switch to another app. Exactly ONE notification should appear, not two.
+- [ ] Do Not Disturb: turn on Do Not Disturb (click the date and time in the taskbar, then the bell icon; or Settings > System > Notifications > Do not disturb). Repeat the "5 seconds" test while in another app. Expected: no pop-up (Windows holds it back), but it should be listed when you click the date and time in the taskbar. Turn Do Not Disturb off afterwards. This is Windows' rule, not a bug; the phone alerts in Phase 5 are the backup.
+
+Removing access at chrome://extensions (do this last, as it stops watching the site):
+- [ ] With a chat going, open chrome://extensions, click "Details" on Queue Cue, find "Site access", and remove 127.0.0.1 (the three-dot menu or the remove button next to it). Do NOT open the Queue Cue popup yet. Go back to the chat tab, click "Agent sends a message in 5 seconds" and switch to another app. Expected: NO notification. If one appears, Chrome didn't tell Queue Cue that access was removed: tell Claude Code. Then click the Queue Cue icon on the chat page: it should say "Not watching this site." Click "Watch chats on this site" and Allow to set things back, then refresh the page.
+
+Keeping the PC awake (needs an admin terminal):
+- [ ] Get ready: close any Chrome tabs playing video or music, and any video calls, as they also keep the PC awake. Right-click the Start button, choose "Terminal (Admin)" and click Yes.
+- [ ] Before: on the chat page click "End chat", then "Forget the chat". In the admin terminal run `powercfg /requests`. Under "EXECUTION:" and "SYSTEM:" there should be no line naming chrome.exe (it may say "None.").
+- [ ] During: click "Visitor sends a message". Run `powercfg /requests` again. Now a line naming chrome.exe should appear under "EXECUTION:" (possibly under "SYSTEM:" as well). Write down which.
+- [ ] Still on after Queue Cue's background part goes to sleep: leave everything alone for 2 minutes, then run `powercfg /requests` again. The chrome.exe line should still be there.
+- [ ] After the chat ends: click "End chat". Run `powercfg /requests`. The chrome.exe line should be gone.
+- [ ] After closing the tab: start a chat again ("Visitor sends a message", check the line is back), then close the chat tab. Run `powercfg /requests`. The line should be gone.
+- [ ] After "Stop watching": open the chat again, start a chat, check the line is back, then click the Queue Cue icon and "Stop watching this site". Run `powercfg /requests`. The line should be gone. Click "Watch chats on this site" again and refresh the page to set things back.
+- [ ] After reloading the extension: start a chat, check the line is back, then click the reload arrow on Queue Cue at chrome://extensions. Run `powercfg /requests`. The line should be gone.
+- [ ] Really stays awake, plugged in: note your current setting in Settings > System > Power & battery > "Screen, sleep & hibernate timeouts", then set "When plugged in, put my device to sleep after" to 1 minute. Start a chat on the fake page and leave the laptop alone (lid open, no keys) for 10 minutes. Then in a normal PowerShell window run `Get-WinEvent -FilterHashtable @{LogName='System'; Id=506,507} -MaxEvents 6 | Format-Table TimeCreated, Id, Message -AutoSize`. Expected: no 506 ("entering Modern Standby") during those 10 minutes. (The screen may still turn off; that's allowed.)
+- [ ] On battery: unplug the charger, set "On battery power, put my device to sleep after" to 1 minute, start a chat and leave the laptop alone for 10 minutes, then run the same Get-WinEvent command. Write down the time of any 506 line. Research says Windows may end Chrome's keep-awake about 5 minutes after the sleep time on battery, so a 506 roughly 6 minutes in would confirm that limit. Put both sleep settings back afterwards.
+- [ ] Optional, slow: start a chat, then don't touch the chat for 65 minutes (the PC must stay plugged in and on). Run `powercfg /requests`. The chrome.exe line should be gone (the 60-minute limit).
 
 ## Phase 4: Real-world test (Bilal)
 - [ ] Extension loaded: chrome://extensions, Developer mode on, Load unpacked, then choose the folder that contains manifest.json (not the folder above it)

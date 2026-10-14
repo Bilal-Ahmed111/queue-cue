@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Break Test: Site Handler Patterns</title>
+</head>
+<body>
+  <h1>Break Test: Site Handler Patterns</h1>
+  <p>Reviewer test page (test/e2e/break-phase3-site.spec.js). The fake chat plus the site's own Tawk.to code, written in
+    other ways real sites write it. Pick the way with ?pattern=... in the address. Tests compare what the site's handlers
+    see with and without Queue Cue: it must be exactly the same.</p>
+
+  <script type="text/javascript">
+  window.siteCalls = [];
+  function record(name) {
+    return function (arg) {
+      window.siteCalls.push(name + ': ' + JSON.stringify(arg === undefined ? null : arg));
+    };
+  }
+  function loadFakeTawk() {
+    var s1 = document.createElement('script');
+    s1.async = true;
+    s1.src = 'fake-tawk.js';
+    s1.charset = 'UTF-8';
+    document.head.appendChild(s1);
+  }
+  var pattern = new URLSearchParams(location.search).get('pattern');
+
+  if (pattern === 'default-if-missing') {
+    // "Only set a handler if there isn't one yet" - a common defensive style.
+    var api = window.Tawk_API = window.Tawk_API || {};
+    api.onLoad = api.onLoad || record('load (|| default)');
+    if (!api.onChatMessageAgent) api.onChatMessageAgent = record('agent message (if missing)');
+    if (typeof api.onAgentJoinChat !== 'function') api.onAgentJoinChat = record('agent joined (typeof check)');
+    loadFakeTawk();
+  } else if (pattern === 'define-property') {
+    // The site makes Tawk_API with Object.defineProperty, then sets a handler the same way.
+    Object.defineProperty(window, 'Tawk_API', { value: {}, writable: true, configurable: true, enumerable: true });
+    Object.defineProperty(window.Tawk_API, 'onChatMessageAgent', { value: record('agent message (defineProperty)'), writable: true, configurable: true, enumerable: true });
+    window.Tawk_API.onLoad = record('load');
+    loadFakeTawk();
+  } else if (pattern === 'locked-handler') {
+    // A handler the site makes impossible to change.
+    var locked = window.Tawk_API = window.Tawk_API || {};
+    Object.defineProperty(locked, 'onChatMessageAgent', { value: record('agent message (locked)'), writable: false, configurable: false, enumerable: true });
+    locked.onLoad = record('load');
+    loadFakeTawk();
+  } else if (pattern === 'replaced-object') {
+    // The snippet runs, then other site code swaps in a whole new object before Tawk.to loads.
+    window.Tawk_API = window.Tawk_API || {};
+    window.Tawk_API.onLoad = record('load (first object, replaced)');
+    window.Tawk_API = { onLoad: record('load (second object)'), onChatMessageAgent: record('agent message (second object)') };
+    loadFakeTawk();
+  } else if (pattern === 'loaded-late') {
+    // Chat loaded after a delay, as with cookie-consent tools: the snippet runs about a second after the page.
+    setTimeout(function () {
+      window.Tawk_API = window.Tawk_API || {};
+      window.Tawk_API.onLoad = record('load (late snippet)');
+      window.Tawk_API.onChatMessageAgent = record('agent message (late snippet)');
+      loadFakeTawk();
+    }, 1000);
+  }
+  </script>
+</body>
+</html>
