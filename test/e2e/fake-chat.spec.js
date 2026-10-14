@@ -1,6 +1,6 @@
 // Checks that the fake Tawk.to chat behaves like the real widget did in the live tests
 // (notes/research/tawk.md, sections 7 and 8.3). These run without the extension.
-const { test, expect } = require('@playwright/test');
+const { plainTest: test, expect } = require('./fixtures');
 
 const { FAKE_CHAT_URL: FAKE_CHAT } = require('../fake-chat-config');
 

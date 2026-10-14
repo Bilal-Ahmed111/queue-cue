@@ -12,6 +12,9 @@ const BUILD = path.join(ROOT, 'test', '.build', 'extension');
 const FAKE_CHAT_ORIGIN = 'http://127.0.0.1/*';
 
 module.exports = async function globalSetup() {
+  // Start no test browsers at all while the Windows sign-in stop file is there (browser-profile.js).
+  require('./browser-profile').assertNotStopped();
+
   fs.rmSync(BUILD, { recursive: true, force: true });
   fs.mkdirSync(BUILD, { recursive: true });
 

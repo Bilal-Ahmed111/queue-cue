@@ -1,6 +1,6 @@
 // Reviewer's "try to break it" tests for the fake Tawk.to chat (test/fake-chat/fake-tawk.js).
 // No extension loaded. Each test gets a fresh browser context, so the fake's saved chat starts empty.
-const { test, expect } = require('@playwright/test');
+const { plainTest: test, expect } = require('./fixtures');
 
 const { FAKE_CHAT_URL: FAKE_CHAT } = require('../fake-chat-config');
 

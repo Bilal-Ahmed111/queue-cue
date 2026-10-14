@@ -1,6 +1,7 @@
 # Progress: Queue Cue
 
 Current phase: 3 (Core build, Tawk.to). Steps 0-4 built. First review (2026-10-14): FAIL with 2 bugs. Fixed: keep-awake race with a closing tab, plus smaller points. The "only if missing" handler bug is fixed too: the Tawk.to detector now listens to the widget's window events, checked in two live tests (Next steps 1-2 in the Phase 3 section). One new question for Bilal (Next steps, item 2). Next: decisions B and D, then the reviewer. Tests (2026-10-14): 112 passed, 0 failed, 1 skipped.
+Fixed 2026-10-14 (late): test runs were locking Bilal's Windows account. Each test starts Chromium on a fresh profile, and on Windows Chromium checks "is the Windows password blank?" by trying to sign in with an empty password (one failed sign-in, event 4625, per launch; about 113 per test run). Test browsers now start with that answer pre-filled (test/e2e/browser-profile.js; notes/research/windows-logon.md). A tripwire stops the run, and blocks further runs, if Chromium ever asks Windows again: delete test/.build/STOP-windows-sign-in.txt only once the cause is understood. Retries are off and a run stops after 10 failed tests. Nothing runs on its own: no scheduled tasks, startup entries or hooks.
 Bilal's Chrome: 155.0.8059.79 (updated from 154 on 2026-10-14). Tests use Playwright's Chromium 156, so flag any feature newer than 155. Run tests with: npm.cmd test (in PowerShell, plain "npm test" is blocked because Windows won't run the npm.ps1 script; npm.cmd is the same npm without that block)
 
 Key: [ ] to do, [x] done. Owner in brackets.
@@ -67,6 +68,9 @@ All of these use the fake chat in your own Chrome, not the real Tawk.to (that's 
 Getting ready (each time Claude Code changes the code):
 - [ ] At chrome://extensions, click the round "reload" arrow on the Queue Cue card. Then refresh the chat page. Open pages keep running the old code until you refresh them.
 - [ ] In a terminal in the project folder, run `node test/serve.js` and leave that window open. Open http://127.0.0.1:47813/ in Chrome. Click the Queue Cue icon. It should say "Watching chats on this site." (if it doesn't, click "Watch chats on this site", Allow, then refresh the page). Click "Forget the chat", then "Visitor sends a message" so a chat is going.
+
+Test runs leave your Windows sign-in alone (added 2026-10-14 after the lockouts):
+- [ ] In an admin terminal (right-click Start, "Terminal (Admin)"), run `Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4625; StartTime=(Get-Date '2026-10-14 22:50')} -ErrorAction SilentlyContinue | Select-Object TimeCreated, @{n='Process';e={$_.Properties[18].Value}} | Format-Table -AutoSize`. Expected: no lines naming chrome.exe from the project folder (no output at all is fine). Change the date and time to just before the latest test run to re-check later.
 
 Notifications:
 - [ ] Stays on screen: click "Agent sends a message in 5 seconds", then at once click on another app (for example Notepad). A notification "Agent replied on 127.0.0.1" with a Close button should appear and stay in the corner of the screen for at least 1 minute, untouched. Then click it: Chrome comes to the front on the chat tab and the notification goes away.
@@ -163,6 +167,7 @@ Keeping the PC awake (needs an admin terminal):
 - (2026-10-14) B: a site's notification is cleared automatically when Bilal switches to that chat tab himself.
 - (2026-10-14) C: Tawk.to detection listens to the widget's window events ("tawkChatMessageAgent" etc., used by Tawk.to's own official add-ons but not documented) instead of wrapping Tawk_API callbacks, once a live test confirms them. Changes CLAUDE.md's architecture bullets.
 - (2026-10-14) D: tabs with an active chat are marked "don't discard" (autoDiscardable false) so Chrome's Memory Saver can't unload them.
+- (2026-10-14) Test browsers never start on an empty profile: they use test/e2e/browser-profile.js (pre-filled Local State plus tripwire), including tests without the extension (plainTest in fixtures.js). Playwright's own browser fixture is switched off. Reason: Windows account lockouts from Chromium's blank-password check.
 - (2026-10-14) E: "agent left" is not treated as the end of the chat, because the agent can come back to it (live test). Keep-awake's 60-minute limit covers that case; closing the chat tab still releases it at once.
 
 ## Known limitations

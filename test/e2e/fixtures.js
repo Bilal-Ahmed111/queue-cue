@@ -1,8 +1,11 @@
 // Shared test setup: launches Playwright's bundled Chromium with the extension loaded.
 // By default it loads the test copy (test/.build/extension). A test file can switch to the real
 // extension folder with: test.use({ extensionVariant: 'real' })
+// Every browser starts on a safe profile (browser-profile.js), so Chromium never tries to sign in to
+// Windows. Tests without the extension use plainTest below, never Playwright's own browser.
 const path = require('path');
 const { test: base, expect, chromium } = require('@playwright/test');
+const profile = require('./browser-profile');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const EXTENSION_PATHS = {
@@ -21,8 +24,8 @@ const test = base.extend({
     const extensionPath = EXTENSION_PATHS[extensionVariant];
     let context;
     try {
-      // '' = a fresh temporary browser profile for every test.
-      context = await chromium.launchPersistentContext('', {
+      // A fresh browser profile for every test, with the Windows password answer filled in.
+      context = await profile.launch(chromium, {
         channel: 'chromium',
         headless: !process.env.HEADED,
         args: [
@@ -38,7 +41,7 @@ const test = base.extend({
       throw error;
     }
     await use(context);
-    await context.close();
+    await profile.close(context);
   },
 
   serviceWorker: async ({ context }, use) => {
@@ -63,4 +66,20 @@ async function inServiceWorker(worker, fn, arg) {
   }
 }
 
-module.exports = { test, expect, inServiceWorker };
+// For tests that don't load the extension. Same safe profile; Playwright's own browser fixture is
+// switched off, because it would start Chromium without the filled-in answer.
+const plainTest = base.extend({
+  browser: [async ({}, use) => {
+    throw new Error('Use the context or page fixture: Playwright\'s own browser would start without the safe profile (browser-profile.js).');
+  }, { scope: 'worker' }],
+  context: async ({}, use) => {
+    const context = await profile.launch(chromium, { channel: 'chromium', headless: !process.env.HEADED });
+    await use(context);
+    await profile.close(context);
+  },
+  page: async ({ context }, use) => {
+    await use(context.pages()[0] || await context.newPage());
+  }
+});
+
+module.exports = { test, plainTest, expect, inServiceWorker };

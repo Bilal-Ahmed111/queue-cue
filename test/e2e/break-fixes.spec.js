@@ -4,7 +4,7 @@ const fs = require('fs');
 const net = require('net');
 const path = require('path');
 const { spawn } = require('child_process');
-const { test: plain, expect } = require('@playwright/test');
+const { plainTest: plain, expect } = require('./fixtures');
 const { test: withExtension, inServiceWorker } = require('./fixtures');
 const { FAKE_CHAT_URL: FAKE_CHAT, FAKE_CHAT_PORT } = require('../fake-chat-config');
 
