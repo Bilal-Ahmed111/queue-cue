@@ -1,5 +1,5 @@
-// Checks that the fake Tawk.to chat behaves like the real widget did in the live test
-// (notes/research/tawk.md, section 7). These run without the extension.
+// Checks that the fake Tawk.to chat behaves like the real widget did in the live tests
+// (notes/research/tawk.md, sections 7 and 8.3). These run without the extension.
 const { test, expect } = require('@playwright/test');
 
 const { FAKE_CHAT_URL: FAKE_CHAT } = require('../fake-chat-config');
@@ -179,6 +179,102 @@ test('every open tab hears agent events', async ({ context }) => {
     const [agent] = await callsNamed(page, 'onChatMessageAgent');
     expect(agent.args).toEqual([{ message: 'Agent reply 1', attachments: [] }]);
   }
+});
+
+// Records every "tawk..." window event and every callback, in one list, to compare the two.
+function recordEventsAndCallbacks() {
+  const names = ['BeforeLoad', 'Load', 'StatusChange', 'ChatStarted', 'ChatEnded', 'ChatMessageVisitor',
+    'ChatMessageAgent', 'AgentJoinChat', 'AgentLeaveChat'];
+  window.__seen = [];
+  window.Tawk_API = {};
+  names.forEach((n) => {
+    window.addEventListener('tawk' + n, (event) => window.__seen.push({
+      what: 'event tawk' + n, detail: event.detail, custom: event instanceof CustomEvent, bubbles: event.bubbles
+    }));
+    window.Tawk_API['on' + n] = (...args) => window.__seen.push({ what: 'callback on' + n, args });
+  });
+}
+
+async function openRecorded(page) {
+  await page.addInitScript(recordEventsAndCallbacks);
+  await page.goto(FAKE_CHAT);
+  await page.waitForFunction(() => window.__seen.some((s) => s.what === 'callback onLoad'));
+}
+
+const seen = (page) => page.evaluate(() => window.__seen);
+const seenNamed = async (page, what) => (await seen(page)).filter((s) => s.what === what);
+
+test('sends each event on window first, then to the callback, with the same data', async ({ page }) => {
+  await openRecorded(page);
+  await page.evaluate(() => {
+    window.FakeTawk.visitorMessage('Hello');
+    window.FakeTawk.agentJoin();
+    window.FakeTawk.agentMessage('Hi');
+    window.FakeTawk.endChat();
+  });
+  const all = await seen(page);
+  expect(all.map((s) => s.what)).toEqual([
+    'event tawkBeforeLoad', 'callback onBeforeLoad', 'event tawkStatusChange', 'callback onStatusChange',
+    'event tawkLoad', 'callback onLoad',
+    'event tawkChatMessageVisitor', 'callback onChatMessageVisitor', 'event tawkChatStarted', 'callback onChatStarted',
+    'event tawkAgentJoinChat', 'callback onAgentJoinChat', 'event tawkChatMessageAgent', 'callback onChatMessageAgent',
+    'event tawkChatEnded', 'callback onChatEnded'
+  ]);
+  for (let i = 0; i < all.length; i += 2) {
+    expect(all[i]).toMatchObject({ custom: true, bubbles: false });
+    // A callback with data gets it as its one argument; the event's detail is the same, or null.
+    expect(all[i].detail).toEqual(all[i + 1].args.length ? all[i + 1].args[0] : null);
+  }
+  const [agent] = await seenNamed(page, 'event tawkChatMessageAgent');
+  expect(agent.detail).toEqual({ message: 'Hi', attachments: [] });
+});
+
+test('a visitor\'s message only fires in its own tab; the chat starting reaches the other tabs', async ({ context }) => {
+  const first = await context.newPage();
+  const second = await context.newPage();
+  await openRecorded(first);
+  await openRecorded(second);
+  await first.evaluate(() => window.FakeTawk.visitorMessage('Hello'));
+  await expect.poll(async () => (await seen(second)).map((s) => s.what).slice(6))
+    .toEqual(['event tawkChatStarted', 'callback onChatStarted']);
+  const [started] = await seenNamed(first, 'event tawkChatStarted');
+  const [startedThere] = await seenNamed(second, 'event tawkChatStarted');
+  expect(startedThere.detail).toEqual(started.detail);
+});
+
+test('the agent closing the chat fires only "agent left", in every tab; the agent can come back', async ({ context }) => {
+  const first = await context.newPage();
+  const second = await context.newPage();
+  await openRecorded(first);
+  await openRecorded(second);
+  await first.evaluate(() => {
+    window.FakeTawk.visitorMessage('Hello');
+    window.FakeTawk.agentJoin();
+    window.FakeTawk.agentMessage('Reply A');
+  });
+  expect(await first.evaluate(() => window.Tawk_API.isChatOngoing())).toBe(true);
+
+  await first.evaluate(() => window.FakeTawk.agentLeave());
+  for (const p of [first, second]) {
+    await expect.poll(async () => (await seenNamed(p, 'event tawkAgentLeaveChat')).length).toBe(1);
+    const [left] = await seenNamed(p, 'event tawkAgentLeaveChat');
+    expect(Object.keys(left.detail).sort()).toEqual(['id', 'image', 'name', 'position']);
+    expect(await seenNamed(p, 'event tawkChatEnded')).toHaveLength(0);
+    expect(await p.evaluate(() => window.Tawk_API.isChatOngoing())).toBe(false);
+    expect(await p.evaluate(() => window.Tawk_API.isVisitorEngaged())).toBe(true);
+  }
+
+  await first.evaluate(() => {
+    window.FakeTawk.agentJoin();
+    window.FakeTawk.agentMessage('Reply B');
+  });
+  for (const p of [first, second]) {
+    await expect.poll(async () => (await seenNamed(p, 'event tawkChatMessageAgent')).map((s) => s.detail.message))
+      .toEqual(['Reply A', 'Reply B']);
+  }
+  expect(await first.evaluate(() => window.Tawk_API.isChatOngoing())).toBe(true);
+  // Same chat: no second chat start.
+  expect(await seenNamed(first, 'event tawkChatStarted')).toHaveLength(1);
 });
 
 test('a page without the snippet gets no Tawk_API', async ({ page }) => {

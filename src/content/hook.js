@@ -1,6 +1,6 @@
 // Queue Cue hook. Runs in the page's own JavaScript world (MAIN) at document_start, only on sites
-// the user chose to watch, before the page's own scripts. It can reach vendor APIs such as
-// window.Tawk_API but not chrome.* APIs, so it passes events to the relay (src/content/relay.js)
+// the user chose to watch, before the page's own scripts. It can reach the vendor's JavaScript (its
+// API objects and the events it sends on window) but not chrome.* APIs, so it passes events to the relay (src/content/relay.js)
 // with window.postMessage. Content scripts can't use import/export, so this file creates one
 // namespace object and the detectors in src/detectors/, loaded after it, use and add to it.
 (function () {

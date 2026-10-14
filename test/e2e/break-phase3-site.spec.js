@@ -58,8 +58,8 @@ test('a site that creates Tawk_API with Object.defineProperty is not broken', as
   expect(run.without).toContain('agent message (defineProperty): {"message":"Reply","attachments":[]}');
   expect(run.withQueueCue).toEqual(run.without);
   expect(run.errors).toEqual([]);
-  // Known gap, recorded rather than required: Queue Cue's watcher on window.Tawk_API is replaced, so it hears nothing here.
-  test.info().annotations.push({ type: 'events heard with defineProperty', description: JSON.stringify(run.events) });
+  // Queue Cue listens to Tawk.to's window events, so how the site makes Tawk_API doesn't matter.
+  expect(run.events).toEqual(['visitor_message', 'agent_joined', 'agent_message', 'chat_ended']);
 });
 
 test('a site handler that can\'t be changed (non-configurable) is left alone and still called', async ({ context, serviceWorker }) => {
@@ -67,7 +67,7 @@ test('a site handler that can\'t be changed (non-configurable) is left alone and
   expect(run.without).toContain('agent message (locked): {"message":"Reply","attachments":[]}');
   expect(run.withQueueCue).toEqual(run.without);
   expect(run.errors).toEqual([]);
-  test.info().annotations.push({ type: 'events heard with a locked handler', description: JSON.stringify(run.events) });
+  expect(run.events).toEqual(['visitor_message', 'agent_joined', 'agent_message', 'chat_ended']);
 });
 
 test('a site that swaps in a whole new Tawk_API object before Tawk.to loads: same calls, and Queue Cue still hears the chat', async ({ context, serviceWorker }) => {

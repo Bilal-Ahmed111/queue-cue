@@ -1,6 +1,7 @@
 // Phase 3, step 2: the hook (src/content/hook.js), the Tawk.to detector (src/detectors/tawk.js) and the
 // relay (src/content/relay.js) get chat events to the service worker, which records them in the
-// dev-mode log (kind "event"). Fake chat only: a fake proves the logic; only the real chat proves it works.
+// dev-mode log (kind "event"). The detector listens to the widget's "tawk..." window events (tawk.md 8.3).
+// Fake chat only: a fake proves the logic; only the real chat proves it works.
 // Turning events into alerts (duplicates, quiet rule, notifications) is step 3.
 const { test, expect, inServiceWorker } = require('./fixtures');
 const { FAKE_CHAT_URL } = require('../fake-chat-config');
@@ -92,6 +93,24 @@ test('with the chat open in two tabs, each tab reports the agent\'s reply under 
   expect(events.map((e) => e.type)).toEqual(['agent_message', 'agent_message']);
   expect(events[0].messageKey).toBe(events[1].messageKey);
   expect(events[0].tabId).not.toBe(events[1].tabId);
+});
+
+test('the agent closing the chat reports nothing; an agent coming back is reported as usual', async ({ context, serviceWorker }) => {
+  await watchFakeChat(serviceWorker);
+  const chat = await openChat(context);
+  await fake(chat, 'visitorMessage', 'Hello');
+  await fake(chat, 'agentJoin');
+  await fake(chat, 'agentMessage', 'Reply A');
+  await eventsAfter(serviceWorker, 3);
+
+  await fake(chat, 'agentLeave');
+  await settle(chat);
+  expect(await readEvents(serviceWorker)).toHaveLength(3);
+
+  await fake(chat, 'agentJoin');
+  await fake(chat, 'agentMessage', 'Reply B');
+  const events = await eventsAfter(serviceWorker, 5);
+  expect(events.slice(3).map((e) => e.type)).toEqual(['agent_joined', 'agent_message']);
 });
 
 test('after a refresh, old messages report nothing', async ({ context, serviceWorker }) => {
@@ -201,6 +220,28 @@ test('the site\'s own Tawk.to handlers see exactly what they would without Queue
   expect(events.map((e) => e.type)).toEqual(['visitor_message', 'agent_joined', 'agent_message', 'chat_ended']);
 });
 
+test('Queue Cue leaves Tawk_API and the site\'s handlers exactly as the site made them', async ({ context, serviceWorker }) => {
+  await watchFakeChat(serviceWorker);
+  const chat = await context.newPage();
+  await chat.addInitScript(() => {
+    window.__mine = function () {};
+  });
+  await chat.goto(page('/'));
+  // Set like a site would, after the snippet; checked once the widget has loaded.
+  await chat.evaluate(() => { window.Tawk_API.onChatMessageAgent = window.__mine; });
+  await waitUntilLoaded(chat);
+  const seen = await chat.evaluate(() => {
+    const global = Object.getOwnPropertyDescriptor(window, 'Tawk_API');
+    const handler = Object.getOwnPropertyDescriptor(window.Tawk_API, 'onChatMessageAgent');
+    return {
+      globalIsPlainValue: !!global && 'value' in global && !('get' in global),
+      handlerIsPlainValue: !!handler && 'value' in handler && !('get' in handler),
+      sameHandler: window.Tawk_API.onChatMessageAgent === window.__mine
+    };
+  });
+  expect(seen).toEqual({ globalIsPlainValue: true, handlerIsPlainValue: true, sameHandler: true });
+});
+
 test('a watched page without Tawk.to gets no Tawk_API value, no errors and no events', async ({ context, serviceWorker }) => {
   await watchFakeChat(serviceWorker);
   const plain = await context.newPage();
@@ -212,9 +253,10 @@ test('a watched page without Tawk.to gets no Tawk_API value, no errors and no ev
     hookLoaded: Object.prototype.hasOwnProperty.call(window, '__queueCue'),
     hookListed: Object.keys(window).includes('__queueCue'),
     value: window.Tawk_API,
-    type: typeof Tawk_API
+    type: typeof Tawk_API,
+    inWindow: 'Tawk_API' in window
   }));
-  expect(seen).toEqual({ hookLoaded: true, hookListed: false, type: 'undefined' });
+  expect(seen).toEqual({ hookLoaded: true, hookListed: false, type: 'undefined', inWindow: false });
 
   // Odd things a site might put in Tawk_API don't break anything, and read back as set.
   const readBack = await plain.evaluate(() => [5, 'text', null, Object.freeze({ onLoad: 1 }), Object.seal({})].map((value) => {

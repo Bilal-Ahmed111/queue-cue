@@ -69,7 +69,8 @@ test('with the chat in two tabs, closing one keeps the PC awake; closing both le
   await setUp(serviceWorker);
   const first = await openChat(context);
   const second = await openChat(context);
-  await fake(first, 'visitorMessage', 'Hello'); // heard in both tabs
+  await fake(first, 'visitorMessage', 'Hello'); // only heard in the first tab (real widget, tawk.md 8.3)
+  await fake(first, 'agentJoin'); // heard in both tabs
   await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1']);
   await settle(first);
 
@@ -79,6 +80,39 @@ test('with the chat in two tabs, closing one keeps the PC awake; closing both le
 
   await second.close();
   await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1', 'off: chat tab closed']);
+});
+
+// Known gap (real widget, tawk.md 8.3): a visitor's message only reaches the tab it was typed in, so a second
+// tab of the chat counts only once it hears the agent. Recorded here so a change in behaviour shows up.
+test('with the chat in two tabs and only the visitor\'s message so far, closing the tab it was typed in lets the PC sleep', async ({ context, serviceWorker }) => {
+  await setUp(serviceWorker);
+  const first = await openChat(context);
+  const second = await openChat(context);
+  await fake(first, 'visitorMessage', 'Hello');
+  await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1']);
+  await settle(first);
+
+  await first.close();
+  await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1', 'off: chat tab closed']);
+
+  // The agent joining is heard in the remaining tab, which switches it back on.
+  await fake(second, 'agentJoin');
+  await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1', 'off: chat tab closed', 'on: chat going on 127.0.0.1']);
+});
+
+// The agent closing the chat in the dashboard only says "agent left", and they can come back, so the PC
+// stays awake until the 60-minute limit (Bilal's decision, 2026-10-14).
+test('the agent closing the chat keeps the PC awake', async ({ context, serviceWorker }) => {
+  await setUp(serviceWorker);
+  const chat = await openChat(context);
+  await fake(chat, 'visitorMessage', 'Hello');
+  await fake(chat, 'agentJoin');
+  await fake(chat, 'agentMessage', 'Hi');
+  await fake(chat, 'agentLeave');
+  await waitForSwitches(serviceWorker, ['on: chat going on 127.0.0.1']);
+  await settle(chat);
+  expect(await switches(serviceWorker)).toEqual(['on: chat going on 127.0.0.1']);
+  expect(await alarm(serviceWorker)).toBeDefined();
 });
 
 test('reloading the chat or moving around the site keeps the PC awake; going to another site lets it sleep', async ({ context, serviceWorker }) => {
@@ -175,6 +209,11 @@ test('when the service worker starts, keep-awake for tabs that are gone is let g
 
 test('a site dropped because its access is gone lets the PC sleep', async ({ serviceWorker }) => {
   await inServiceWorker(serviceWorker, async () => {
+    // Let the worker's own start-up checks finish first, or its keep-awake check may drop the made-up
+    // tab before reconcile does (a race in this test, seen as "off: start-up check"). Both checks wait
+    // their turn, so these two calls end after the start-up ones.
+    await QueueCue.sites.reconcile();
+    await QueueCue.keepAwake.checkAtStartUp();
     await chrome.storage.local.set({ watchedSites: ['https://shop.example/*'] });
     await chrome.storage.session.set({ keepAwake: { tabs: { 7: 'https://shop.example/*' }, lastActivity: Date.now(), on: true } });
     await QueueCue.sites.reconcile();

@@ -15,13 +15,14 @@
 
   <h2>Visitor</h2>
   <button id="visitor-message" type="button">Visitor sends a message</button>
+  <button id="end-chat" type="button">End chat</button>
 
   <h2>Agent (dashboard)</h2>
   <button id="agent-join" type="button">Agent joins</button>
   <button id="agent-message" type="button">Agent sends a message</button>
   <button id="agent-message-later" type="button">Agent sends a message in 5 seconds</button>
   <p id="later-note" hidden>The agent will reply in 5 seconds. Switch to another app or another website's tab now to see Queue Cue's alert.</p>
-  <button id="end-chat" type="button">End chat</button>
+  <button id="agent-leave" type="button">Agent closes the chat</button>
 
   <h2>Test controls</h2>
   <button id="reset" type="button">Forget the chat</button>
@@ -61,6 +62,7 @@
         t.agentMessage('Agent reply ' + agentCount);
       }, 5000);
     });
+    on('agent-leave', function (t) { t.agentLeave(); });
     on('end-chat', function (t) { t.endChat(); });
     on('reset', function (t) { t.reset(); });
   })();

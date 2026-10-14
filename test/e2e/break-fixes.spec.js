@@ -56,7 +56,9 @@ plain.describe('fake chat: a throwing site handler only affects its own tab', ()
     }
   });
 
-  plain('first visitor message: a throwing handler in the sending tab still lets other tabs get the message and the chat start', async ({ context }) => {
+  // The real widget tells the other tabs that a chat started, but not what the visitor wrote
+  // (notes/research/tawk.md, section 8.3), and the fake now does the same.
+  plain('first visitor message: a throwing handler in the sending tab still lets other tabs hear that the chat started', async ({ context }) => {
     const sender = await context.newPage();
     const other = await context.newPage();
     await openChat(sender, ['onChatMessageVisitor']);
@@ -67,8 +69,8 @@ plain.describe('fake chat: a throwing site handler only affects its own tab', ()
     });
     expect(error).toMatch(/site handler bug/);
 
-    await expect.poll(() => count(other, 'onChatMessageVisitor')).toBe(1);
     await expect.poll(() => count(other, 'onChatStarted')).toBe(1);
+    expect(await count(other, 'onChatMessageVisitor')).toBe(0);
     const [started] = await named(other, 'onChatStarted');
     expect(typeof started.args[0].chatId).toBe('string');
 
@@ -108,7 +110,8 @@ plain.describe('fake chat: a throwing site handler only affects its own tab', ()
     await a.waitForTimeout(200);
     for (const n of ['onChatMessageVisitor', 'onChatStarted', 'onAgentJoinChat', 'onChatMessageAgent', 'onChatEnded']) {
       expect(await count(a, n), n).toBe(1);
-      expect(await count(b, n), n).toBe(1);
+      // The visitor's message stays in the tab it was typed in (real widget, section 8.3).
+      expect(await count(b, n), n).toBe(n === 'onChatMessageVisitor' ? 0 : 1);
     }
   });
 });
