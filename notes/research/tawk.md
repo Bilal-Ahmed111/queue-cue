@@ -112,6 +112,8 @@ Labels: OFFICIAL-DOCS = developer.tawk.to / help.tawk.to page text. VENDOR-CODE 
 
 ### 8.1 Does Tawk.to dispatch DOM events on window? Short answer: YES in practice (VENDOR-CODE), but NOT documented on developer.tawk.to.
 
+The live test in 8.3 (real widget, 2026-10-14) settled the UNKNOWN items in 8.1.2, 8.1.3 and 8.1.7.
+
 OFFICIAL-DOCS says nothing about it. https://developer.tawk.to/jsapi/ : the tool found no mention of CustomEvent, addEventListener, tawkLoad or any DOM/window event. The only mechanism the page describes is assigning functions to `window.Tawk_API.onX`. The React wrapper's api-reference.md (https://github.com/tawk/tawk-messenger-react/blob/master/docs/api-reference.md) also says "None are mentioned" for window events / CustomEvent / detail (its only "event" word is `tawkAddEvent`, which is the chat API, not a DOM event). A general web search found no page documenting these event names (search tool: "I couldn't find any evidence that tawk.to fires window events named tawkLoad ..."). So: undocumented.
 
 VENDOR-CODE evidence that they exist: Tawk's own wrappers do not set `Tawk_API.onX` at all; they listen with `window.addEventListener('tawk...')`. Read:
@@ -174,3 +176,41 @@ Only needed if the live test in 8.1.7 disproves the events. Short answer: NOT do
 - Top-level or later: UNKNOWN. Our live finding (section 7) says the getter was read ~55 ms after page start and before `onBeforeLoad`, which is consistent with a read at script start, but we did not record `document.currentScript` or a stack.
 - Live test: in a getter on each `onX`, log `document.currentScript && document.currentScript.src`, `new Error().stack` (it shows the calling script's URL and whether it is the top-level frame or an async callback), `performance.now()`, and count the reads. Compare reads by the site's own code (e.g. a site snippet doing `Tawk_API.onLoad = Tawk_API.onLoad || mine`) with reads by Tawk. If the stack file URLs are on `embed.tawk.to` / `*.tawk.to`, a stack check works but is fragile (needs the stack to be exposed and not minified into the site's bundle) and `Error.stack` is not a standard. If `document.currentScript` is the tawk script on the one read, that is a cleaner signal; if it is null, it is not usable.
 - Alternative that needs no knowledge: a one-shot getter that returns a wrapper only on the FIRST read after `<script src*="embed.tawk.to">` exists in the DOM, and undefined/original otherwise, would still be visible to the site's own reads that happen in that window, so it does not fully solve the problem. Prefer the events.
+
+### 8.3 Live test of the window events (REAL Tawk.to widget, 2026-10-14)
+Source: test-site/events-probe.html on http://localhost:8080 in Claude Code's built-in Chromium browser. Tab A: `events-probe.html` (sets NO `Tawk_API.onX` callbacks). Tab B: `events-probe.html?callbacks=1` (also sets every `Tawk_API.onX`), opened on the same chat after the visitor's first message and left in the background. Claude Code played the visitor; Bilal replied from the dashboard. Observations from one account on one day, not documented guarantees. Raw logs are not kept; the facts below are copied from them.
+
+How the events are sent:
+- They fire with no callbacks set (tab A). This settles 8.1.3.
+- All are `CustomEvent`s dispatched directly on `window`: `bubbles` false, `isTrusted` false (sent by script). None were seen on `document`.
+- With callbacks set (tab B), each event AND its callback fired, once each. The event came first and the callback about 1 ms later, for every pair.
+- A listener added only after `tawkLoad` heard every later event.
+- Both tabs fired the agent join and every agent message (tab B was a background tab throughout).
+
+What `event.detail` carries (the same value the matching callback gets; settles 8.1.2):
+
+| Event | detail |
+|---|---|
+| tawkBeforeLoad, tawkLoad, tawkChatEnded, tawkChatMaximized, tawkChatMinimized | `null` |
+| tawkStatusChange | `"online"` |
+| tawkChatStarted | `{ chatId: "<uuid>" }` (same as the callback) |
+| tawkChatMessageVisitor, tawkChatMessageAgent, tawkChatMessageSystem | `{ message: "<text>", attachments: [] }` (no message ID, no timestamp) |
+| tawkAgentJoinChat, tawkAgentLeaveChat | `{ name, position, image, id }` (`id` = the agent's ID, `position` was `""`) |
+| tawkUnreadCountChanged | a number |
+
+Sequence and replay:
+- First page load, no chat yet: tawkBeforeLoad (~105-170 ms), tawkStatusChange("online"), tawkLoad (~820-990 ms). About 0.7 s after tawkLoad came tawkChatMessageSystem with the dashboard's automatic greeting ("Hi! How can we help?" plus two "[option]" lines), then tawkUnreadCountChanged(1). Section 7 saw no system messages; the greeting seems to be new. It is a system message, not an agent message, so it must not alert. After the chat had ended, a reload did not show it again.
+- Visitor's first message: tawkChatMessageVisitor, then tawkChatStarted 2 ms later.
+- Reload with an ongoing chat (widget open), reload with the widget minimised, and reload after the chat had ended: NO tawkChatMessageVisitor, tawkChatMessageAgent or tawkAgentJoinChat for old messages. tawkChatStarted fires again on each reload of an ongoing chat, with the same chatId, before tawkLoad (~330-370 ms). It did not fire on the reload after the chat had ended.
+- With the widget minimised, an agent reply still fired tawkChatMessageAgent.
+- `isChatOngoing()`: false after the visitor's message and after the agent joined, true after the first agent message, false once the agent had left. Same as section 7.
+
+How a chat ends (important for keep-awake):
+- Agent ends it from the dashboard (Bilal wasn't sure which button he used: "End chat", "Leave" or close): ONLY tawkAgentLeaveChat fired, in both tabs. NO tawkChatEnded event and NO onChatEnded callback. `isChatOngoing()` became false. The visitor's widget showed no "chat ended" notice and its text box stayed usable.
+- Visitor ends it (widget menu, "End this chat session", then "End Chat"): tawkUnreadCountChanged(0), tawkChatMinimized, tawkChatEnded (detail null), in both tabs; in tab B the onChatEnded callback too. `isVisitorEngaged()` became false.
+- Not tested: an agent transfer (one agent leaves, another joins) and a chat closed by a timeout.
+
+Consequences for Queue Cue (our reasoning):
+- The events carry everything the detector needs: load, agent join, agent message text (for the fingerprint), visitor message and visitor-side chat end. Decision C (listen to window events instead of wrapping callbacks) can go ahead.
+- When the agent ends the chat, Queue Cue only sees tawkAgentLeaveChat, so keep-awake would stay on until the 60-minute limit. This gap is the same with callbacks, so it is not caused by switching to events. Treating "agent left" as the end of the chat needs a decision, as an agent may also leave during a transfer.
+- `isTrusted` is false, so any script on the page could send a fake tawk event. The trust level is the same as with callbacks (a page script could call `Tawk_API.onX` itself), so this adds no new risk.
